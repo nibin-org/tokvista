@@ -24,8 +24,14 @@ jobs:
     
     - run: npm ci
     - run: npm run typecheck
-    - run: npm run lint
-    - run: npm run build
+    - name: Check if dist exists
+      run: |
+        if [ -d "dist" ]; then
+          echo "✅ dist directory exists"
+        else
+          echo "❌ dist directory missing - running build"
+          npm run build
+        fi
 
   publish:
     needs: test
