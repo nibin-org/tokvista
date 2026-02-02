@@ -1,6 +1,6 @@
 {
   "name": "@nibin-org/tokens",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -34,8 +34,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "figma",

@@ -36,51 +36,87 @@ export function TokenDocumentation({
     const [searchQuery, setSearchQuery] = useState('');
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
 
-    // Extract token sets dynamically
-    const colorsValue = tokens['Colors/Value'];
-    const spacingTokens = tokens['Spacing/Mode 1'] || tokens['Space/Mode 1'] || {};
-    const sizeTokens = tokens['Size/Mode 1'] || {};
-    const radiusTokens = tokens['Radius/Mode 1'] || {};
-    
-    // Get all other token sets dynamically (excluding special ones)
-    const otherTokenSets = Object.entries(tokens)
-        .filter(([key]) => ![
-            'Colors/Value', 'Spacing/Mode 1', 'Space/Mode 1', 'Size/Mode 1', 'Radius/Mode 1',
-            'global', '$themes', '$metadata'
-        ].includes(key))
+    // Extract token sets dynamically by analyzing structure
+    const tokenSets = Object.entries(tokens)
+        .filter(([key]) => !['global', '$themes', '$metadata'].includes(key))
         .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    // Detect token set types by analyzing their structure
+    const detectTokenSetType = (tokenSet: any): string => {
+        if (!tokenSet || typeof tokenSet !== 'object') return 'other';
+        
+        // Check for color structure (base, fill, stroke, text)
+        if (tokenSet.base || tokenSet.fill || tokenSet.stroke || tokenSet.text) {
+            return 'colors';
+        }
+        
+        // Check if all tokens are dimension/spacing type
+        const allTokens = Object.values(tokenSet).flat();
+        const hasOnlyDimensions = allTokens.every((token: any) => 
+            token && typeof token === 'object' && token.type === 'dimension'
+        );
+        
+        if (hasOnlyDimensions) {
+            // Distinguish between spacing, size, and radius by common naming patterns
+            const tokenNames = Object.keys(tokenSet).join(' ').toLowerCase();
+            if (tokenNames.includes('space') || tokenNames.includes('spacing')) return 'spacing';
+            if (tokenNames.includes('radius') || tokenNames.includes('border')) return 'radius';
+            if (tokenNames.includes('size') || tokenNames.includes('width') || tokenNames.includes('height')) return 'sizes';
+        }
+        
+        return 'other';
+    };
+    
+    // Categorize token sets
+    const categorizedSets = Object.entries(tokenSets).reduce((acc, [key, value]) => {
+        const type = detectTokenSetType(value);
+        if (!acc[type]) acc[type] = {};
+        acc[type][key] = value;
+        return acc;
+    }, {} as Record<string, Record<string, any>>);
+    
+    // Extract specific token sets (use first found of each type)
+    const colorsValue = Object.values(categorizedSets.colors || {})[0];
+    const spacingTokens = Object.values(categorizedSets.spacing || {})[0] || {};
+    const sizeTokens = Object.values(categorizedSets.sizes || {})[0] || {};
+    const radiusTokens = Object.values(categorizedSets.radius || {})[0] || {};
+    const otherTokenSets = categorizedSets.other || {};
 
     // Available tabs based on token data
     const availableTabs = useMemo(() => {
         const tabs: { id: string; label: string; icon: string }[] = [];
-
-        if (colorsValue) {
-            tabs.push({ id: 'colors', label: 'Colors', icon: '🎨' });
-        }
-        if (Object.keys(spacingTokens).length > 0) {
-            tabs.push({ id: 'spacing', label: 'Spacing', icon: '📏' });
-        }
-        if (Object.keys(sizeTokens).length > 0) {
-            tabs.push({ id: 'sizes', label: 'Sizes', icon: '📐' });
-        }
-        if (Object.keys(radiusTokens).length > 0) {
-            tabs.push({ id: 'radius', label: 'Radius', icon: '⬜' });
-        }
         
-        // Add dynamic tabs for any other token sets
-        Object.entries(otherTokenSets).forEach(([key, value]) => {
-            if (value && typeof value === 'object' && Object.keys(value).length > 0) {
-                const cleanLabel = key.replace(/\/Mode \d+/, '').replace(/\//g, ' ');
-                tabs.push({ 
-                    id: key, 
-                    label: cleanLabel, 
-                    icon: '🧩' 
-                });
+        // Add tabs for detected token types
+        const typeConfig = {
+            colors: { label: 'Colors', icon: '🎨' },
+            spacing: { label: 'Spacing', icon: '📏' },
+            sizes: { label: 'Sizes', icon: '📐' },
+            radius: { label: 'Radius', icon: '⬜' }
+        };
+        
+        Object.entries(categorizedSets).forEach(([type, sets]) => {
+            if (Object.keys(sets).length > 0) {
+                const config = typeConfig[type as keyof typeof typeConfig];
+                if (config) {
+                    tabs.push({ id: type, label: config.label, icon: config.icon });
+                } else {
+                    // Dynamic tabs for other token sets
+                    Object.entries(sets).forEach(([key, value]) => {
+                        if (value && typeof value === 'object' && Object.keys(value).length > 0) {
+                            const cleanLabel = key.replace(/\/Mode \d+/, '').replace(/\//g, ' ');
+                            tabs.push({ 
+                                id: key, 
+                                label: cleanLabel, 
+                                icon: '🧩' 
+                            });
+                        }
+                    });
+                }
             }
         });
 
         return tabs;
-    }, [colorsValue, spacingTokens, sizeTokens, radiusTokens, otherTokenSets]);
+    }, [categorizedSets]);
 
     // Ensure active tab is valid
     const validActiveTab = availableTabs.some(t => t.id === activeTab)
@@ -198,7 +234,7 @@ export function TokenDocumentation({
                     }
                     
                     // Handle any other dynamic token sets
-                    const tokenSet = (otherTokenSets as any)[validActiveTab];
+                    const tokenSet = tokenSets[validActiveTab];
                     if (!tokenSet) return null;
                     
                     return (
@@ -207,15 +243,60 @@ export function TokenDocumentation({
                             {Object.entries(tokenSet).map(([componentName, componentData]) => {
                                 const buttonData = componentData as any;
                                 
-                                // Check if this is a button component with variants
-                                const hasVariants = buttonData.primary || buttonData.secondary || buttonData.tertiary;
+                                // Dynamically detect structure patterns
+                                const allKeys = Object.keys(buttonData);
+                                
+                                // Find properties that have nested objects with 'value' and 'type' (these are likely variants)
+                                const potentialVariants = allKeys.filter(key => {
+                                    const item = buttonData[key];
+                                    return item && 
+                                           typeof item === 'object' && 
+                                           item !== null &&
+                                           !item.hasOwnProperty('value') && // Not a direct token
+                                           Object.values(item).some((subItem: any) => 
+                                               subItem && typeof subItem === 'object' && subItem.hasOwnProperty('value')
+                                           );
+                                });
+                                
+                                // Find properties that are direct size/dimension tokens (have sm/md/lg or similar structure)
+                                const sizeProps = allKeys.filter(key => {
+                                    const item = buttonData[key];
+                                    return item && 
+                                           typeof item === 'object' && 
+                                           item !== null &&
+                                           !item.hasOwnProperty('value') && // Not a direct token
+                                           Object.values(item).every((subItem: any) => 
+                                               subItem && typeof subItem === 'object' && 
+                                               subItem.hasOwnProperty('value') && 
+                                               subItem.hasOwnProperty('type')
+                                           ) &&
+                                           !potentialVariants.includes(key); // Not already identified as variant
+                                });
+                                
+                                const hasVariants = potentialVariants.length > 0;
                                 
                                 if (hasVariants) {
-                                    // Button component with variants
-                                    const variants = ['primary', 'secondary', 'tertiary'].filter(v => buttonData[v]);
-                                    const fontSize = buttonData.fontsize?.md?.value || '14px';
-                                    const lineHeight = buttonData['line-height']?.md?.value || '24px';
-                                    const borderRadius = buttonData.radius?.md?.value || '6px';
+                                    // Get actual values from available size properties
+                                    const getMiddleValue = (propData: any) => {
+                                        if (!propData) return null;
+                                        const values = Object.values(propData);
+                                        const middleIndex = Math.floor(values.length / 2);
+                                        return (values[middleIndex] as any)?.value;
+                                    };
+                                    
+                                    // Use actual properties from tokens - no assumptions
+                                    const availableProps = sizeProps.reduce((acc, prop) => {
+                                        acc[prop] = getMiddleValue(buttonData[prop]);
+                                        return acc;
+                                    }, {} as Record<string, string>);
+                                    
+                                    // Use first available property for button preview, or minimal defaults
+                                    const previewStyles = {
+                                        fontSize: Object.values(availableProps)[0] || '1rem',
+                                        lineHeight: '1.4',
+                                        borderRadius: '4px',
+                                        padding: '12px 24px'
+                                    };
                                     
                                     return (
                                         <div key={componentName} className="ftd-component-section" style={{ marginBottom: '48px' }}>
@@ -252,43 +333,37 @@ export function TokenDocumentation({
                                                     gap: '24px',
                                                     marginBottom: '32px'
                                                 }}>
-                                                    {variants.map(variant => {
+                                                    {potentialVariants.map(variant => {
                                                         const variantData = buttonData[variant];
-                                                        const fillColor = variantData.fill?.value?.replace(/[{}]/g, '') || '#3b82f6';
-                                                        const textColor = variantData.text?.value?.replace(/[{}]/g, '') || '#ffffff';
-                                                        const strokeColor = variantData.stroke?.value?.replace(/[{}]/g, '') || 'transparent';
                                                         
                                                         return (
                                                             <div key={variant} style={{ textAlign: 'center' }}>
                                                                 <button
                                                                     style={{
-                                                                        fontSize: fontSize,
-                                                                        lineHeight: lineHeight,
-                                                                        borderRadius: borderRadius,
-                                                                        padding: '12px 24px',
-                                                                        backgroundColor: variant === 'primary' ? 'var(--ftd-accent-primary)' : 
-                                                                                       variant === 'secondary' ? 'transparent' : 'transparent',
-                                                                        color: variant === 'primary' ? 'white' : 
-                                                                               variant === 'secondary' ? 'var(--ftd-text-primary)' : 'var(--ftd-accent-primary)',
-                                                                        border: variant === 'secondary' ? '1px solid var(--ftd-border-subtle)' : 'none',
+                                                                        fontSize: previewStyles.fontSize,
+                                                                        lineHeight: previewStyles.lineHeight,
+                                                                        borderRadius: previewStyles.borderRadius,
+                                                                        padding: previewStyles.padding,
+                                                                        backgroundColor: variant === potentialVariants[0] ? 'var(--ftd-accent-primary)' : 'transparent',
+                                                                        color: variant === potentialVariants[0] ? 'white' : 'var(--ftd-text-primary)',
+                                                                        border: variant !== potentialVariants[0] ? '1px solid var(--ftd-border-subtle)' : 'none',
                                                                         cursor: 'pointer',
                                                                         fontWeight: '500',
                                                                         transition: 'all 0.2s ease',
-                                                                        minWidth: '120px',
-                                                                        textDecoration: variant === 'tertiary' ? 'underline' : 'none'
+                                                                        minWidth: '120px'
                                                                     }}
                                                                     onMouseOver={(e) => {
-                                                                        if (variant === 'primary') {
+                                                                        if (variant === potentialVariants[0]) {
                                                                             e.currentTarget.style.backgroundColor = 'var(--ftd-accent-primary-hover)';
-                                                                        } else if (variant === 'secondary') {
+                                                                        } else {
                                                                             e.currentTarget.style.backgroundColor = 'var(--ftd-bg-secondary)';
                                                                         }
                                                                         e.currentTarget.style.transform = 'translateY(-1px)';
                                                                     }}
                                                                     onMouseOut={(e) => {
-                                                                        if (variant === 'primary') {
+                                                                        if (variant === potentialVariants[0]) {
                                                                             e.currentTarget.style.backgroundColor = 'var(--ftd-accent-primary)';
-                                                                        } else if (variant === 'secondary') {
+                                                                        } else {
                                                                             e.currentTarget.style.backgroundColor = 'transparent';
                                                                         }
                                                                         e.currentTarget.style.transform = 'translateY(0)';
@@ -320,18 +395,15 @@ export function TokenDocumentation({
                                                     Size Variations
                                                 </h6>
                                                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                                                    {Object.entries(buttonData.fontsize || {}).map(([size, data]: [string, any]) => {
-                                                        const sizeRadius = buttonData.radius?.[size]?.value || borderRadius;
-                                                        const sizeLineHeight = buttonData['line-height']?.[size]?.value || lineHeight;
-                                                        
+                                                    {sizeProps.length > 0 && Object.entries(buttonData[sizeProps[0]] || {}).map(([size, data]: [string, any]) => {
                                                         return (
                                                             <button
                                                                 key={size}
                                                                 style={{
                                                                     fontSize: data.value,
-                                                                    lineHeight: sizeLineHeight,
-                                                                    borderRadius: sizeRadius,
-                                                                    padding: size === 'sm' ? '8px 16px' : size === 'lg' ? '12px 24px' : '10px 20px',
+                                                                    lineHeight: '1.4',
+                                                                    borderRadius: previewStyles.borderRadius,
+                                                                    padding: '8px 16px',
                                                                     backgroundColor: 'var(--ftd-accent-primary)',
                                                                     color: 'white',
                                                                     border: 'none',
@@ -354,7 +426,7 @@ export function TokenDocumentation({
                                                 gap: '24px' 
                                             }}>
                                                 {/* Variant Tokens */}
-                                                {variants.map(variant => (
+                                                {potentialVariants.map(variant => (
                                                     <div key={variant} style={{
                                                         padding: '24px',
                                                         backgroundColor: 'var(--ftd-bg-primary)',
@@ -409,7 +481,7 @@ export function TokenDocumentation({
                                                 ))}
                                                 
                                                 {/* Size Tokens */}
-                                                {['fontsize', 'line-height', 'radius'].map(prop => {
+                                                {sizeProps.map(prop => {
                                                     if (!buttonData[prop]) return null;
                                                     return (
                                                         <div key={prop} style={{
@@ -425,7 +497,7 @@ export function TokenDocumentation({
                                                                 fontWeight: '600',
                                                                 textTransform: 'capitalize'
                                                             }}>
-                                                                {prop.replace('-', ' ')}
+                                                                {prop.replace('-', ' ').replace('_', ' ')}
                                                             </h6>
                                                             <div style={{ display: 'grid', gap: '8px' }}>
                                                                 {Object.entries(buttonData[prop]).map(([size, data]: [string, any]) => (
