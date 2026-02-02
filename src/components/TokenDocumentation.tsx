@@ -204,34 +204,90 @@ export function TokenDocumentation({
                     return (
                         <div className="ftd-dynamic-tokens">
                             <h3>{availableTabs.find(t => t.id === validActiveTab)?.label || 'Tokens'}</h3>
-                            {Object.entries(tokenSet).map(([categoryName, categoryData]) => (
-                                <div key={categoryName} className="ftd-token-section">
-                                    <h4 style={{ textTransform: 'capitalize', marginBottom: '16px', color: 'var(--ftd-text-primary)' }}>
-                                        {categoryName}
+                            {Object.entries(tokenSet).map(([componentName, componentData]) => (
+                                <div key={componentName} className="ftd-component-section" style={{ marginBottom: '32px' }}>
+                                    <h4 style={{ 
+                                        textTransform: 'capitalize', 
+                                        marginBottom: '24px', 
+                                        color: 'var(--ftd-text-primary)',
+                                        fontSize: '18px',
+                                        fontWeight: '600'
+                                    }}>
+                                        {componentName} Component
                                     </h4>
-                                    <div className="ftd-token-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                                        {Object.entries(categoryData as any).map(([tokenName, tokenData]) => (
-                                            <div 
-                                                key={tokenName} 
-                                                className="ftd-token-card" 
-                                                style={{ 
-                                                    padding: '12px', 
-                                                    border: '1px solid var(--ftd-border-subtle)', 
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onClick={() => onTokenClick && onTokenClick({
-                                                    name: tokenName,
-                                                    value: (tokenData as any).value,
-                                                    cssVariable: `--${tokenName}`,
-                                                    numericValue: 0
-                                                } as any)}
-                                            >
-                                                <div className="ftd-token-name" style={{ fontWeight: '500', marginBottom: '4px' }}>
-                                                    {tokenName}
-                                                </div>
-                                                <div className="ftd-token-value" style={{ color: 'var(--ftd-text-secondary)', fontSize: '14px' }}>
-                                                    {(tokenData as any).value}
+                                    <div className="ftd-component-properties" style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                                        gap: '24px' 
+                                    }}>
+                                        {Object.entries(componentData as any).map(([propertyName, propertyTokens]) => (
+                                            <div key={propertyName} className="ftd-property-group">
+                                                <h5 style={{ 
+                                                    textTransform: 'capitalize', 
+                                                    marginBottom: '12px', 
+                                                    color: 'var(--ftd-text-secondary)',
+                                                    fontSize: '14px',
+                                                    fontWeight: '500'
+                                                }}>
+                                                    {propertyName}
+                                                </h5>
+                                                <div className="ftd-property-tokens" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {Object.entries(propertyTokens as any).map(([tokenName, tokenData]) => (
+                                                        <div 
+                                                            key={tokenName} 
+                                                            className="ftd-token-card" 
+                                                            style={{ 
+                                                                padding: '12px 16px', 
+                                                                border: '1px solid var(--ftd-border-subtle)', 
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                backgroundColor: 'var(--ftd-bg-primary)'
+                                                            }}
+                                                            onClick={() => onTokenClick && onTokenClick({
+                                                                name: tokenName,
+                                                                value: (tokenData as any).value,
+                                                                cssVariable: `--${componentName}-${propertyName}-${tokenName}`,
+                                                                numericValue: 0
+                                                            } as any)}
+                                                        >
+                                                            <div className="ftd-token-info">
+                                                                <div className="ftd-token-name" style={{ 
+                                                                    fontWeight: '500', 
+                                                                    marginBottom: '2px',
+                                                                    color: 'var(--ftd-text-primary)'
+                                                                }}>
+                                                                    {tokenName}
+                                                                </div>
+                                                                <div className="ftd-token-value" style={{ 
+                                                                    color: 'var(--ftd-text-secondary)', 
+                                                                    fontSize: '13px',
+                                                                    fontFamily: 'monospace'
+                                                                }}>
+                                                                    {(tokenData as any).value}
+                                                                </div>
+                                                            </div>
+                                                            {propertyName === 'fontsize' && (
+                                                                <div style={{
+                                                                    fontSize: (tokenData as any).value,
+                                                                    color: 'var(--ftd-text-primary)',
+                                                                    fontWeight: '500'
+                                                                }}>
+                                                                    Aa
+                                                                </div>
+                                                            )}
+                                                            {propertyName === 'radius' && (
+                                                                <div style={{
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                    backgroundColor: 'var(--ftd-accent-primary)',
+                                                                    borderRadius: (tokenData as any).value
+                                                                }} />
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}
