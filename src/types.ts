@@ -79,7 +79,7 @@ export interface TokenDocumentationProps {
   tokens: FigmaTokens;
   title?: string;
   subtitle?: string;
-  defaultTab?: 'colors' | 'spacing' | 'sizes' | 'radius';
+  defaultTab?: string;
   showSearch?: boolean;
   darkMode?: boolean;
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;

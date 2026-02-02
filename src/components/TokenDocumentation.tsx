@@ -7,7 +7,7 @@ import { SpacingScale } from './SpacingScale';
 import { RadiusShowcase } from './RadiusShowcase';
 import { SizeScale } from './SizeScale';
 
-type TabType = 'colors' | 'spacing' | 'sizes' | 'radius';
+type TabType = string;
 
 /**
  * TokenDocumentation - Main wrapper component for design token visualization
@@ -36,15 +36,23 @@ export function TokenDocumentation({
     const [searchQuery, setSearchQuery] = useState('');
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
 
-    // Extract token sets
+    // Extract token sets dynamically
     const colorsValue = tokens['Colors/Value'];
     const spacingTokens = tokens['Spacing/Mode 1'] || tokens['Space/Mode 1'] || {};
     const sizeTokens = tokens['Size/Mode 1'] || {};
     const radiusTokens = tokens['Radius/Mode 1'] || {};
+    
+    // Get all other token sets dynamically (excluding special ones)
+    const otherTokenSets = Object.entries(tokens)
+        .filter(([key]) => ![
+            'Colors/Value', 'Spacing/Mode 1', 'Space/Mode 1', 'Size/Mode 1', 'Radius/Mode 1',
+            'global', '$themes', '$metadata'
+        ].includes(key))
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
     // Available tabs based on token data
     const availableTabs = useMemo(() => {
-        const tabs: { id: TabType; label: string; icon: string }[] = [];
+        const tabs: { id: string; label: string; icon: string }[] = [];
 
         if (colorsValue) {
             tabs.push({ id: 'colors', label: 'Colors', icon: '🎨' });
@@ -58,9 +66,21 @@ export function TokenDocumentation({
         if (Object.keys(radiusTokens).length > 0) {
             tabs.push({ id: 'radius', label: 'Radius', icon: '⬜' });
         }
+        
+        // Add dynamic tabs for any other token sets
+        Object.entries(otherTokenSets).forEach(([key, value]) => {
+            if (value && typeof value === 'object' && Object.keys(value).length > 0) {
+                const cleanLabel = key.replace(/\/Mode \d+/, '').replace(/\//g, ' ');
+                tabs.push({ 
+                    id: key, 
+                    label: cleanLabel, 
+                    icon: '🧩' 
+                });
+            }
+        });
 
         return tabs;
-    }, [colorsValue, spacingTokens, sizeTokens, radiusTokens]);
+    }, [colorsValue, spacingTokens, sizeTokens, radiusTokens, otherTokenSets]);
 
     // Ensure active tab is valid
     const validActiveTab = availableTabs.some(t => t.id === activeTab)
@@ -136,36 +156,91 @@ export function TokenDocumentation({
 
             {/* Tab Content */}
             <div role="tabpanel">
-                {validActiveTab === 'colors' && colorsValue && (
-                    <ColorGrid
-                        baseColors={colorsValue.base}
-                        fillColors={colorsValue.fill}
-                        strokeColors={colorsValue.stroke}
-                        textColors={colorsValue.text}
-                        onColorClick={onTokenClick}
-                    />
-                )}
-
-                {validActiveTab === 'spacing' && (
-                    <SpacingScale
-                        tokens={spacingTokens}
-                        onTokenClick={onTokenClick}
-                    />
-                )}
-
-                {validActiveTab === 'sizes' && (
-                    <SizeScale
-                        tokens={sizeTokens}
-                        onTokenClick={onTokenClick}
-                    />
-                )}
-
-                {validActiveTab === 'radius' && (
-                    <RadiusShowcase
-                        tokens={radiusTokens}
-                        onTokenClick={onTokenClick}
-                    />
-                )}
+                {(() => {
+                    // Handle built-in token types with special components
+                    if (validActiveTab === 'colors' && colorsValue) {
+                        return (
+                            <ColorGrid
+                                baseColors={colorsValue.base}
+                                fillColors={colorsValue.fill}
+                                strokeColors={colorsValue.stroke}
+                                textColors={colorsValue.text}
+                                onColorClick={onTokenClick}
+                            />
+                        );
+                    }
+                    
+                    if (validActiveTab === 'spacing') {
+                        return (
+                            <SpacingScale
+                                tokens={spacingTokens}
+                                onTokenClick={onTokenClick}
+                            />
+                        );
+                    }
+                    
+                    if (validActiveTab === 'sizes') {
+                        return (
+                            <SizeScale
+                                tokens={sizeTokens}
+                                onTokenClick={onTokenClick}
+                            />
+                        );
+                    }
+                    
+                    if (validActiveTab === 'radius') {
+                        return (
+                            <RadiusShowcase
+                                tokens={radiusTokens}
+                                onTokenClick={onTokenClick}
+                            />
+                        );
+                    }
+                    
+                    // Handle any other dynamic token sets
+                    const tokenSet = (otherTokenSets as any)[validActiveTab];
+                    if (!tokenSet) return null;
+                    
+                    return (
+                        <div className="ftd-dynamic-tokens">
+                            <h3>{availableTabs.find(t => t.id === validActiveTab)?.label || 'Tokens'}</h3>
+                            {Object.entries(tokenSet).map(([categoryName, categoryData]) => (
+                                <div key={categoryName} className="ftd-token-section">
+                                    <h4 style={{ textTransform: 'capitalize', marginBottom: '16px', color: 'var(--ftd-text-primary)' }}>
+                                        {categoryName}
+                                    </h4>
+                                    <div className="ftd-token-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                                        {Object.entries(categoryData as any).map(([tokenName, tokenData]) => (
+                                            <div 
+                                                key={tokenName} 
+                                                className="ftd-token-card" 
+                                                style={{ 
+                                                    padding: '12px', 
+                                                    border: '1px solid var(--ftd-border-subtle)', 
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => onTokenClick && onTokenClick({
+                                                    name: tokenName,
+                                                    value: (tokenData as any).value,
+                                                    cssVariable: `--${tokenName}`,
+                                                    numericValue: 0
+                                                } as any)}
+                                            >
+                                                <div className="ftd-token-name" style={{ fontWeight: '500', marginBottom: '4px' }}>
+                                                    {tokenName}
+                                                </div>
+                                                <div className="ftd-token-value" style={{ color: 'var(--ftd-text-secondary)', fontSize: '14px' }}>
+                                                    {(tokenData as any).value}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Empty State */}
