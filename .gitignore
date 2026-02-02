@@ -1,25 +1,42 @@
 # Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Build output
+# Build outputs
 dist/
+build/
+*.tsbuildinfo
 
-# IDE
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Logs
+# Temporary files
+*.tmp
+*.temp
 *.log
-npm-debug.log*
+*.pack.gz
 
-# Test coverage
-coverage/
+# Demo dependencies
+demo/node_modules/
+demo/.next/
+demo/out/
 
-# Misc
-*.tgz
-.env
-.env.local
+# Cache directories
+.cache/
+.turbo/
