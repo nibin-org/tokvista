@@ -1,0 +1,83 @@
+{
+  "name": "@nibin-org/tokens",
+  "version": "1.0.2",
+  "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": {
+      "import": "./dist/styles.css",
+      "require": "./dist/styles.css",
+      "default": "./dist/styles.css"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "figma",
+    "design-tokens",
+    "tokens",
+    "design-system",
+    "storybook",
+    "styleguide",
+    "react",
+    "documentation",
+    "style-dictionary",
+    "token-studio",
+    "figma-tokens",
+    "design-tokens-visualizer",
+    "ui-tokens",
+    "css-variables",
+    "design-ops",
+    "design-system-docs",
+    "color-palette",
+    "spacing-scale",
+    "tailwind-tokens"
+  ],
+  "author": "nibinlab99-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nibin-org/tokens"
+  },
+  "homepage": "https://github.com/nibin-org/tokens#readme",
+  "bugs": {
+    "url": "https://github.com/nibin-org/tokens/issues"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
