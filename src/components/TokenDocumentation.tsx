@@ -173,7 +173,7 @@ export function TokenDocumentation({
             )}
 
             {/* Tabs */}
-            {availableTabs.length > 1 && (
+            {availableTabs.length > 1 && Object.keys(otherTokenSets).length === 0 && (
                 <nav className="ftd-tabs" role="tablist">
                     {availableTabs.map((tab) => (
                         <button
@@ -233,356 +233,252 @@ export function TokenDocumentation({
                         );
                     }
                     
-                    // Handle any other dynamic token sets
-                    const tokenSet = (tokenSets as any)[validActiveTab];
-                    if (!tokenSet) return null;
+                    // Unified view for all component tokens
+                    const allComponentTokens = Object.entries(otherTokenSets).reduce((acc, [setKey, setData]) => {
+                        Object.entries(setData as any).forEach(([componentName, componentData]) => {
+                            acc[`${setKey}/${componentName}`] = componentData;
+                        });
+                        return acc;
+                    }, {} as Record<string, any>);
+                    
+                    if (Object.keys(allComponentTokens).length === 0) return null;
                     
                     return (
-                        <div className="ftd-dynamic-tokens">
-                            <h3>{(availableTabs.find(t => t.id === validActiveTab) || { label: 'Tokens' }).label}</h3>
-                            {Object.entries(tokenSet).map(([componentName, componentData]) => {
+                        <div className="ftd-unified-tokens">
+                            <h2 style={{
+                                textAlign: 'center',
+                                margin: '0 0 48px 0',
+                                color: 'var(--ftd-text-primary)',
+                                fontSize: '32px',
+                                fontWeight: '800'
+                            }}>
+                                Design System Components
+                            </h2>
+                            
+                            {Object.entries(allComponentTokens).map(([fullName, componentData]) => {
+                                const [setName, componentName] = fullName.split('/');
                                 const buttonData = componentData as any;
                                 
                                 // Dynamically detect structure patterns
                                 const allKeys = Object.keys(buttonData);
                                 
-                                // Find properties that have nested objects with 'value' and 'type' (these are likely variants)
+                                // Find variant properties (primary, secondary, tertiary)
                                 const potentialVariants = allKeys.filter(key => {
                                     const item = buttonData[key];
                                     return item && 
                                            typeof item === 'object' && 
                                            item !== null &&
-                                           !item.hasOwnProperty('value') && // Not a direct token
+                                           !item.hasOwnProperty('value') && 
                                            Object.values(item).some((subItem: any) => 
                                                subItem && typeof subItem === 'object' && subItem.hasOwnProperty('value')
                                            );
                                 });
                                 
-                                // Find properties that are direct size/dimension tokens (have sm/md/lg or similar structure)
-                                const sizeProps = allKeys.filter(key => {
-                                    const item = buttonData[key];
-                                    return item && 
-                                           typeof item === 'object' && 
-                                           item !== null &&
-                                           !item.hasOwnProperty('value') && // Not a direct token
-                                           Object.values(item).every((subItem: any) => 
-                                               subItem && typeof subItem === 'object' && 
-                                               subItem.hasOwnProperty('value') && 
-                                               subItem.hasOwnProperty('type')
-                                           ) &&
-                                           !potentialVariants.includes(key); // Not already identified as variant
-                                });
+                                if (potentialVariants.length === 0) return null;
                                 
-                                const hasVariants = potentialVariants.length > 0;
-                                
-                                if (hasVariants) {
-                                    // Get actual values from available size properties
-                                    const getMiddleValue = (propData: any) => {
-                                        if (!propData) return null;
-                                        const values = Object.values(propData);
-                                        const middleIndex = Math.floor(values.length / 2);
-                                        return (values[middleIndex] as any) && (values[middleIndex] as any).value;
-                                    };
-                                    
-                                    // Use actual properties from tokens - no assumptions
-                                    const availableProps = sizeProps.reduce((acc, prop) => {
-                                        acc[prop] = getMiddleValue(buttonData[prop]);
-                                        return acc;
-                                    }, {} as Record<string, string>);
-                                    
-                                    // Use first available property for button preview, or minimal defaults
-                                    const previewStyles = {
-                                        fontSize: Object.values(availableProps)[0] || '1rem',
-                                        lineHeight: '1.4',
-                                        borderRadius: '4px',
-                                        padding: '12px 24px'
-                                    };
-                                    
-                                    return (
-                                        <div key={componentName} className="ftd-component-section" style={{ marginBottom: '48px' }}>
-                                            <h4 style={{ 
-                                                margin: '0 0 32px 0',
-                                                color: 'var(--ftd-text-primary)',
-                                                fontSize: '24px',
-                                                fontWeight: '700',
-                                                textAlign: 'center'
-                                            }}>
-                                                {componentName.charAt(0).toUpperCase() + componentName.slice(1)} Component
-                                            </h4>
-                                            
-                                            {/* Button Variants Preview */}
-                                            <div style={{
-                                                padding: '32px',
-                                                backgroundColor: 'var(--ftd-bg-secondary)',
-                                                borderRadius: '16px',
-                                                marginBottom: '32px'
-                                            }}>
-                                                <h5 style={{ 
-                                                    margin: '0 0 24px 0',
-                                                    color: 'var(--ftd-text-primary)',
-                                                    fontSize: '18px',
-                                                    fontWeight: '600',
-                                                    textAlign: 'center'
-                                                }}>
-                                                    Button Variants
-                                                </h5>
+                                return (
+                                    <div key={fullName} style={{
+                                        marginBottom: '80px',
+                                        padding: '40px',
+                                        backgroundColor: 'var(--ftd-bg-primary)',
+                                        borderRadius: '24px',
+                                        border: '1px solid var(--ftd-border-subtle)',
+                                        boxShadow: 'var(--ftd-shadow-md)'
+                                    }}>
+                                        <h3 style={{
+                                            textAlign: 'center',
+                                            margin: '0 0 40px 0',
+                                            color: 'var(--ftd-text-primary)',
+                                            fontSize: '28px',
+                                            fontWeight: '700',
+                                            textTransform: 'capitalize'
+                                        }}>
+                                            {componentName} Component
+                                        </h3>
+                                        
+                                        {/* Variant Cards */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                                            gap: '32px'
+                                        }}>
+                                            {potentialVariants.map(variant => {
+                                                const variantData = buttonData[variant];
+                                                const variantTokens = Object.entries(variantData);
                                                 
-                                                <div style={{ 
-                                                    display: 'grid', 
-                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                                                    gap: '24px',
-                                                    marginBottom: '32px'
-                                                }}>
-                                                    {potentialVariants.map(variant => {
-                                                        const variantData = buttonData[variant];
-                                                        
-                                                        return (
-                                                            <div key={variant} style={{ textAlign: 'center' }}>
-                                                                <button
-                                                                    style={{
-                                                                        fontSize: previewStyles.fontSize,
-                                                                        lineHeight: previewStyles.lineHeight,
-                                                                        borderRadius: previewStyles.borderRadius,
-                                                                        padding: previewStyles.padding,
-                                                                        backgroundColor: variant === potentialVariants[0] ? 'var(--ftd-accent-primary)' : 'transparent',
-                                                                        color: variant === potentialVariants[0] ? 'white' : 'var(--ftd-text-primary)',
-                                                                        border: variant !== potentialVariants[0] ? '1px solid var(--ftd-border-subtle)' : 'none',
-                                                                        cursor: 'pointer',
-                                                                        fontWeight: '500',
-                                                                        transition: 'all 0.2s ease',
-                                                                        minWidth: '120px'
-                                                                    }}
-                                                                    onMouseOver={(e) => {
-                                                                        if (variant === potentialVariants[0]) {
-                                                                            e.currentTarget.style.backgroundColor = 'var(--ftd-accent-primary-hover)';
-                                                                        } else {
-                                                                            e.currentTarget.style.backgroundColor = 'var(--ftd-bg-secondary)';
-                                                                        }
-                                                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                                                    }}
-                                                                    onMouseOut={(e) => {
-                                                                        if (variant === potentialVariants[0]) {
-                                                                            e.currentTarget.style.backgroundColor = 'var(--ftd-accent-primary)';
-                                                                        } else {
-                                                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                                                        }
-                                                                        e.currentTarget.style.transform = 'translateY(0)';
-                                                                    }}
-                                                                >
-                                                                    {variant.charAt(0).toUpperCase() + variant.slice(1)}
-                                                                </button>
-                                                                <p style={{ 
-                                                                    margin: '8px 0 0 0', 
-                                                                    fontSize: '12px', 
-                                                                    color: 'var(--ftd-text-secondary)',
-                                                                    fontWeight: '500'
-                                                                }}>
-                                                                    {variant.toUpperCase()}
-                                                                </p>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                // Get color values for preview
+                                                const fillToken = variantTokens.find(([key]) => key.toLowerCase().includes('fill') || key.toLowerCase().includes('background'));
+                                                const strokeToken = variantTokens.find(([key]) => key.toLowerCase().includes('stroke') || key.toLowerCase().includes('border'));
+                                                const textToken = variantTokens.find(([key]) => key.toLowerCase().includes('text') || key.toLowerCase().includes('color'));
                                                 
-                                                {/* Size Variations */}
-                                                <h6 style={{ 
-                                                    margin: '0 0 16px 0',
-                                                    color: 'var(--ftd-text-secondary)',
-                                                    fontSize: '14px',
-                                                    fontWeight: '600',
-                                                    textAlign: 'center'
-                                                }}>
-                                                    Size Variations
-                                                </h6>
-                                                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                                                    {sizeProps.length > 0 && Object.entries(buttonData[sizeProps[0]] || {}).map(([size, data]: [string, any]) => {
-                                                        return (
-                                                            <button
-                                                                key={size}
-                                                                style={{
-                                                                    fontSize: data.value,
-                                                                    lineHeight: '1.4',
-                                                                    borderRadius: previewStyles.borderRadius,
-                                                                    padding: '8px 16px',
-                                                                    backgroundColor: 'var(--ftd-accent-primary)',
-                                                                    color: 'white',
-                                                                    border: 'none',
-                                                                    cursor: 'pointer',
-                                                                    fontWeight: '500',
-                                                                    transition: 'all 0.2s ease'
-                                                                }}
-                                                            >
-                                                                {size.toUpperCase()}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Token Details */}
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                                                gap: '24px' 
-                                            }}>
-                                                {/* Variant Tokens */}
-                                                {potentialVariants.map(variant => (
+                                                const fillColor = fillToken ? (fillToken[1] as any).value : 'var(--ftd-accent-primary)';
+                                                const strokeColor = strokeToken ? (strokeToken[1] as any).value : 'transparent';
+                                                const textColor = textToken ? (textToken[1] as any).value : 'white';
+                                                
+                                                return (
                                                     <div key={variant} style={{
-                                                        padding: '24px',
-                                                        backgroundColor: 'var(--ftd-bg-primary)',
-                                                        borderRadius: '12px',
+                                                        padding: '32px',
+                                                        backgroundColor: 'var(--ftd-bg-secondary)',
+                                                        borderRadius: '16px',
                                                         border: '1px solid var(--ftd-border-subtle)'
                                                     }}>
-                                                        <h6 style={{ 
-                                                            margin: '0 0 16px 0',
-                                                            color: 'var(--ftd-text-primary)',
-                                                            fontSize: '16px',
-                                                            fontWeight: '600',
-                                                            textTransform: 'capitalize'
+                                                        {/* Variant Header */}
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            marginBottom: '24px'
                                                         }}>
-                                                            {variant} Variant
-                                                        </h6>
-                                                        <div style={{ display: 'grid', gap: '8px' }}>
-                                                            {Object.entries(buttonData[variant]).map(([prop, data]: [string, any]) => (
-                                                                <div 
-                                                                    key={prop}
-                                                                    style={{
-                                                                        padding: '8px 12px',
-                                                                        backgroundColor: 'var(--ftd-bg-secondary)',
-                                                                        borderRadius: '6px',
-                                                                        display: 'flex',
-                                                                        justifyContent: 'space-between',
-                                                                        alignItems: 'center',
-                                                                        cursor: 'pointer'
-                                                                    }}
-                                                                    onClick={() => {
-                                                                        navigator.clipboard.writeText(data.value);
-                                                                    }}
-                                                                >
-                                                                    <span style={{ 
-                                                                        fontSize: '12px', 
-                                                                        fontWeight: '500',
-                                                                        color: 'var(--ftd-text-primary)'
-                                                                    }}>
-                                                                        {prop}
-                                                                    </span>
-                                                                    <span style={{ 
-                                                                        fontSize: '11px', 
-                                                                        fontFamily: 'monospace',
-                                                                        color: 'var(--ftd-accent-primary)',
-                                                                        fontWeight: '600'
-                                                                    }}>
-                                                                        {data.value}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                
-                                                {/* Size Tokens */}
-                                                {sizeProps.map(prop => {
-                                                    if (!buttonData[prop]) return null;
-                                                    return (
-                                                        <div key={prop} style={{
-                                                            padding: '24px',
-                                                            backgroundColor: 'var(--ftd-bg-primary)',
-                                                            borderRadius: '12px',
-                                                            border: '1px solid var(--ftd-border-subtle)'
-                                                        }}>
-                                                            <h6 style={{ 
-                                                                margin: '0 0 16px 0',
+                                                            <h4 style={{
+                                                                margin: '0',
                                                                 color: 'var(--ftd-text-primary)',
-                                                                fontSize: '16px',
+                                                                fontSize: '20px',
                                                                 fontWeight: '600',
                                                                 textTransform: 'capitalize'
                                                             }}>
-                                                                {prop.replace('-', ' ').replace('_', ' ')}
-                                                            </h6>
-                                                            <div style={{ display: 'grid', gap: '8px' }}>
-                                                                {Object.entries(buttonData[prop]).map(([size, data]: [string, any]) => (
-                                                                    <div 
-                                                                        key={size}
+                                                                {variant}
+                                                            </h4>
+                                                            
+                                                            {/* Color Preview */}
+                                                            <div style={{
+                                                                display: 'flex',
+                                                                gap: '8px',
+                                                                alignItems: 'center'
+                                                            }}>
+                                                                {fillColor !== 'transparent' && (
+                                                                    <div style={{
+                                                                        width: '24px',
+                                                                        height: '24px',
+                                                                        backgroundColor: fillColor,
+                                                                        borderRadius: '50%',
+                                                                        border: '2px solid var(--ftd-border-subtle)'
+                                                                    }} />
+                                                                )}
+                                                                {strokeColor !== 'transparent' && (
+                                                                    <div style={{
+                                                                        width: '24px',
+                                                                        height: '24px',
+                                                                        backgroundColor: 'transparent',
+                                                                        border: `3px solid ${strokeColor}`,
+                                                                        borderRadius: '50%'
+                                                                    }} />
+                                                                )}
+                                                                {textColor !== 'white' && textColor !== fillColor && (
+                                                                    <div style={{
+                                                                        width: '24px',
+                                                                        height: '24px',
+                                                                        backgroundColor: textColor,
+                                                                        borderRadius: '50%',
+                                                                        border: '2px solid var(--ftd-border-subtle)'
+                                                                    }} />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Button Preview */}
+                                                        <div style={{
+                                                            textAlign: 'center',
+                                                            marginBottom: '24px',
+                                                            padding: '24px',
+                                                            backgroundColor: 'var(--ftd-bg-canvas)',
+                                                            borderRadius: '12px'
+                                                        }}>
+                                                            <button style={{
+                                                                backgroundColor: fillColor,
+                                                                color: textColor,
+                                                                border: strokeColor !== 'transparent' ? `2px solid ${strokeColor}` : 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '12px 24px',
+                                                                fontSize: '16px',
+                                                                fontWeight: '500',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s ease'
+                                                            }}>
+                                                                {variant.charAt(0).toUpperCase() + variant.slice(1)} Button
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        {/* Token Values */}
+                                                        <div style={{
+                                                            display: 'grid',
+                                                            gap: '12px'
+                                                        }}>
+                                                            {variantTokens.map(([tokenName, tokenData]) => {
+                                                                const data = tokenData as any;
+                                                                const isColor = data.type === 'color';
+                                                                
+                                                                return (
+                                                                    <div
+                                                                        key={tokenName}
                                                                         style={{
-                                                                            padding: '8px 12px',
-                                                                            backgroundColor: 'var(--ftd-bg-secondary)',
-                                                                            borderRadius: '6px',
                                                                             display: 'flex',
                                                                             justifyContent: 'space-between',
                                                                             alignItems: 'center',
-                                                                            cursor: 'pointer'
+                                                                            padding: '12px 16px',
+                                                                            backgroundColor: 'var(--ftd-bg-primary)',
+                                                                            borderRadius: '8px',
+                                                                            border: '1px solid var(--ftd-border-subtle)',
+                                                                            cursor: 'pointer',
+                                                                            transition: 'all 0.2s ease'
                                                                         }}
                                                                         onClick={() => {
                                                                             navigator.clipboard.writeText(data.value);
                                                                         }}
+                                                                        onMouseOver={(e) => {
+                                                                            e.currentTarget.style.backgroundColor = 'var(--ftd-bg-secondary)';
+                                                                            e.currentTarget.style.transform = 'translateY(-1px)';
+                                                                        }}
+                                                                        onMouseOut={(e) => {
+                                                                            e.currentTarget.style.backgroundColor = 'var(--ftd-bg-primary)';
+                                                                            e.currentTarget.style.transform = 'translateY(0)';
+                                                                        }}
                                                                     >
-                                                                        <span style={{ 
-                                                                            fontSize: '12px', 
-                                                                            fontWeight: '500',
-                                                                            color: 'var(--ftd-text-primary)'
+                                                                        <div style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '12px'
                                                                         }}>
-                                                                            {size}
-                                                                        </span>
-                                                                        <span style={{ 
-                                                                            fontSize: '11px', 
+                                                                            {isColor && (
+                                                                                <div style={{
+                                                                                    width: '20px',
+                                                                                    height: '20px',
+                                                                                    backgroundColor: data.value,
+                                                                                    borderRadius: '4px',
+                                                                                    border: '1px solid var(--ftd-border-subtle)',
+                                                                                    flexShrink: 0
+                                                                                }} />
+                                                                            )}
+                                                                            <span style={{
+                                                                                fontSize: '14px',
+                                                                                fontWeight: '500',
+                                                                                color: 'var(--ftd-text-primary)',
+                                                                                textTransform: 'capitalize'
+                                                                            }}>
+                                                                                {tokenName.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                                                                            </span>
+                                                                        </div>
+                                                                        
+                                                                        <span style={{
+                                                                            fontSize: '12px',
                                                                             fontFamily: 'monospace',
                                                                             color: 'var(--ftd-accent-primary)',
-                                                                            fontWeight: '600'
+                                                                            fontWeight: '600',
+                                                                            backgroundColor: 'var(--ftd-bg-secondary)',
+                                                                            padding: '4px 8px',
+                                                                            borderRadius: '4px'
                                                                         }}>
                                                                             {data.value}
                                                                         </span>
                                                                     </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    );
-                                } else {
-                                    // Fallback for other component types
-                                    return (
-                                        <div key={componentName} className="ftd-component-section" style={{ marginBottom: '32px' }}>
-                                            <h4 style={{ 
-                                                textTransform: 'capitalize', 
-                                                marginBottom: '24px', 
-                                                color: 'var(--ftd-text-primary)',
-                                                fontSize: '18px',
-                                                fontWeight: '600'
-                                            }}>
-                                                {componentName} Component
-                                            </h4>
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                                                gap: '12px' 
-                                            }}>
-                                                {Object.entries(buttonData).map(([tokenName, tokenData]) => (
-                                                    <div 
-                                                        key={tokenName} 
-                                                        style={{ 
-                                                            padding: '12px', 
-                                                            border: '1px solid var(--ftd-border-subtle)', 
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText((tokenData as any).value);
-                                                        }}
-                                                    >
-                                                        <div style={{ fontWeight: '500', marginBottom: '4px' }}>
-                                                            {tokenName}
-                                                        </div>
-                                                        <div style={{ color: 'var(--ftd-text-secondary)', fontSize: '14px' }}>
-                                                            {(tokenData as any).value}
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                }
+                                    </div>
+                                );
                             })}
                         </div>
                     );
