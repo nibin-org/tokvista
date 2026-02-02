@@ -11,7 +11,7 @@
 
 **The missing UI layer that Style Dictionary doesn't provide**
 
-[View Demo](https://nibin-org-tokens-demo.vercel.app) · [Report Bug](https://github.com/nibin-org/tokens/issues) · [Request Feature](https://github.com/nibin-org/tokens/issues)
+[View Demo](https://nibin-org.github.io/tokens/) · [Report Bug](https://github.com/nibin-org/tokens/issues) · [Request Feature](https://github.com/nibin-org/tokens/issues)
 
 </div>
 
