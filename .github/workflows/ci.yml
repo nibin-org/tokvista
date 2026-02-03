@@ -1,10 +1,14 @@
-name: CI/CD
+name: ci.yml
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   test:
@@ -37,9 +41,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'release:')
-    permissions:
-      contents: read
-      id-token: write
     
     steps:
     - uses: actions/checkout@v4

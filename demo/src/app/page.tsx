@@ -10,7 +10,7 @@ export default function Home() {
       <TokenDocumentation
         tokens={tokens}
         title="@nibin-org/tokens Demo"
-        subtitle="Real tokens from Figma Token Studio - v1.6.8 (Production Ready)"
+        subtitle="Real tokens from Figma Token Studio - v1.6.9 (Production Ready)"
         onTokenClick={(token) => {
           console.log('Token clicked:', token)
         }}
