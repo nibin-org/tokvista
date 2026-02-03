@@ -26,6 +26,9 @@
       "default": "./dist/styles.css"
     }
   },
+  "workspaces": [
+    "demo"
+  ],
   "files": [
     "dist",
     "README.md"
