@@ -28,7 +28,8 @@ export function isTokenValue(obj: unknown): obj is TokenValue {
  * Parse a numeric value from a CSS dimension string
  */
 export function parseNumericValue(value: string): number {
-  const match = value.match(/^([\d.]+)/);
+  if (typeof value !== 'string') return typeof value === 'number' ? value : 0;
+  const match = value.match(/^(-?[\d.]+)/);
   return match ? parseFloat(match[1]) : 0;
 }
 
@@ -36,7 +37,7 @@ export function parseNumericValue(value: string): number {
  * Convert a token path to a CSS variable name
  */
 export function toCssVariable(path: string, prefix: string = ''): string {
-  const cleanPath = path.replace(/\./g, '-').replace(/\s+/g, '-').toLowerCase();
+  const cleanPath = path.replace(/\//g, '-').replace(/\./g, '-').replace(/\s+/g, '-').toLowerCase();
   return prefix ? `--${prefix}-${cleanPath}` : `--${cleanPath}`;
 }
 
@@ -44,13 +45,21 @@ export function toCssVariable(path: string, prefix: string = ''): string {
  * Get text color (black or white) based on background luminance
  */
 export function getContrastColor(hexColor: string): 'black' | 'white' {
+  if (!hexColor || typeof hexColor !== 'string' || !hexColor.startsWith('#')) return 'black';
+  
   // Remove # if present
   const hex = hexColor.replace('#', '');
   
-  // Handle 8-character hex (with alpha)
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
+  // Handle 3-character hex
+  let fullHex = hex;
+  if (hex.length === 3) {
+    fullHex = hex.split('').map(char => char + char).join('');
+  }
+  
+  // Handle 8-character hex (with alpha) - just take first 6
+  const r = parseInt(fullHex.substring(0, 2), 16);
+  const g = parseInt(fullHex.substring(2, 4), 16);
+  const b = parseInt(fullHex.substring(4, 6), 16);
   
   // Calculate relative luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -59,146 +68,209 @@ export function getContrastColor(hexColor: string): 'black' | 'white' {
 }
 
 /**
- * Parse base color tokens into color families
+ * Recursively find all tokens in a nested object
  */
-export function parseBaseColors(tokens: NestedTokens): ColorFamily[] {
-  const families: ColorFamily[] = [];
+export function findAllTokens(obj: any, path: string[] = []): Array<{ path: string; token: TokenValue }> {
+  const tokens: Array<{ path: string; token: TokenValue }> = [];
+
+  if (!obj || typeof obj !== 'object') return tokens;
+
+  if (isTokenValue(obj)) {
+    tokens.push({ path: path.join('.'), token: obj });
+    return tokens;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    tokens.push(...findAllTokens(value, [...path, key]));
+  }
+
+  return tokens;
+}
+
+/**
+ * Create a map of token paths to values for resolution
+ */
+export function createTokenMap(tokens: any): Record<string, string> {
+  const map: Record<string, string> = {};
   
-  for (const [familyName, shades] of Object.entries(tokens)) {
-    if (typeof shades !== 'object' || shades === null) continue;
+  // Scan all top-level keys except metadata
+  Object.entries(tokens).forEach(([setKey, setData]) => {
+    if (['global', '$themes', '$metadata'].includes(setKey)) return;
+    const allTokens = findAllTokens(setData);
+    allTokens.forEach(({ path, token }) => {
+      map[path] = token.value;
+      // Also map with setKey prefix if not already present
+      map[`${setKey}.${path}`] = token.value;
+    });
+  });
+
+  return map;
+}
+
+/**
+ * Resolve a token value (handles aliases)
+ */
+export function resolveTokenValue(value: string, tokenMap: Record<string, string>, maxDepth: number = 10): string {
+  if (!value || typeof value !== 'string') return value;
+  
+  let currentValue = value;
+  let depth = 0;
+  
+  while (currentValue.startsWith('{') && currentValue.endsWith('}') && depth < maxDepth) {
+    const refPath = currentValue.slice(1, -1);
+    const resolved = tokenMap[refPath];
     
-    const family: ColorFamily = {
-      name: familyName,
-      primaryColor: '',
-      shades: [],
-    };
-    
-    for (const [shadeName, token] of Object.entries(shades as NestedTokens)) {
-      if (isTokenValue(token)) {
-        const colorToken: ParsedColorToken = {
-          name: `${familyName}-${shadeName}`,
-          value: token.value,
-          cssVariable: `--base-${familyName}-${shadeName}`,
-          shade: shadeName,
-          family: familyName,
-        };
-        family.shades.push(colorToken);
-        
-        // Use shade 50 as primary color
-        if (shadeName === '50') {
-          family.primaryColor = token.value;
-        }
+    if (resolved !== undefined) {
+      currentValue = resolved;
+    } else {
+      // Try fuzzy match (if path in map ends with refPath)
+      const entry = Object.entries(tokenMap).find(([path]) => path.endsWith(refPath));
+      if (entry) {
+        currentValue = entry[1];
+      } else {
+        break;
       }
     }
+    depth++;
+  }
+  
+  return currentValue;
+}
+
+/**
+ * Parse base color tokens into color families
+ */
+export function parseBaseColors(tokens: NestedTokens, tokenMap: Record<string, string> = {}): ColorFamily[] {
+  const families: Record<string, ColorFamily> = {};
+  
+  // Find all color tokens
+  const allTokens = findAllTokens(tokens);
+  const colorTokens = allTokens.filter(t => t.token.type === 'color');
+
+  colorTokens.forEach(({ path, token }) => {
+    const parts = path.split('.');
+    // Assume family is the first part, shade is the last part
+    // e.g., "blue.500" or "brand.primary.main"
+    const familyName = parts.length > 1 ? parts.slice(0, -1).join('-') : 'Other';
+    const shadeName = parts[parts.length - 1];
+
+    if (!families[familyName]) {
+      families[familyName] = {
+        name: familyName,
+        primaryColor: '',
+        shades: [],
+      };
+    }
+
+    const resolvedValue = resolveTokenValue(token.value, tokenMap);
     
-    // Sort shades numerically
+    const colorToken: ParsedColorToken = {
+      name: path,
+      value: token.value,
+      resolvedValue: resolvedValue,
+      cssVariable: toCssVariable(path, 'base'),
+      shade: shadeName,
+      family: familyName,
+    };
+
+    families[familyName].shades.push(colorToken);
+  });
+
+  const familyList = Object.values(families);
+
+  familyList.forEach(family => {
+    // Sort shades numerically if possible
     family.shades.sort((a, b) => {
       const aNum = parseInt(a.shade || '0');
       const bNum = parseInt(b.shade || '0');
+      if (isNaN(aNum) || isNaN(bNum)) return (a.shade || '').localeCompare(b.shade || '');
       return aNum - bNum;
     });
-    
-    // If no shade 50, use first available shade as primary
-    if (!family.primaryColor && family.shades.length > 0) {
-      family.primaryColor = family.shades[Math.floor(family.shades.length / 2)]?.value || '';
-    }
-    
-    if (family.shades.length > 0) {
-      families.push(family);
-    }
-  }
-  
-  return families;
+
+    // Pick 500 or middle shade as primary
+    const primaryShade = family.shades.find(s => s.shade === '500' || s.shade === '50') || 
+                       family.shades[Math.floor(family.shades.length / 2)];
+    family.primaryColor = primaryShade?.resolvedValue || primaryShade?.value || '';
+  });
+
+  return familyList;
 }
 
 /**
  * Parse semantic color tokens (fill, stroke, text)
  */
-export function parseSemanticColors(tokens: NestedTokens, prefix: string): ParsedColorToken[] {
-  const colors: ParsedColorToken[] = [];
-  
-  for (const [name, token] of Object.entries(tokens)) {
-    if (isTokenValue(token)) {
-      // Resolve alias if present
-      let value = token.value;
-      if (value.startsWith('{') && value.endsWith('}')) {
-        // Keep the alias reference for display purposes
-        value = token.value;
-      }
-      
-      colors.push({
-        name,
-        value,
-        cssVariable: `--${prefix}-${name}`,
-      });
-    }
-  }
-  
-  return colors;
+export function parseSemanticColors(tokens: NestedTokens, prefix: string, tokenMap: Record<string, string> = {}): ParsedColorToken[] {
+  const allTokens = findAllTokens(tokens);
+  return allTokens
+    .filter(t => t.token.type === 'color')
+    .map(({ path, token }) => ({
+      name: path,
+      value: token.value,
+      resolvedValue: resolveTokenValue(token.value, tokenMap),
+      cssVariable: toCssVariable(path, prefix),
+    }));
+}
+
+/**
+ * Generic parser for dimension tokens
+ */
+function parseDimensionTokens<T>(
+  tokens: NestedTokens, 
+  type: string, 
+  prefix: string,
+  mapFn: (name: string, value: string, cssVar: string, numeric: number) => T
+): T[] {
+  const allTokens = findAllTokens(tokens);
+  return allTokens
+    .filter(t => t.token.type === type || t.token.type === 'dimension')
+    .map(({ path, token }) => {
+      const cleanName = path.replace(new RegExp(`^${prefix}-`, 'i'), '');
+      return mapFn(
+        cleanName,
+        token.value,
+        toCssVariable(path, prefix),
+        parseNumericValue(token.value)
+      );
+    });
 }
 
 /**
  * Parse spacing tokens
  */
 export function parseSpacingTokens(tokens: NestedTokens): ParsedSpacingToken[] {
-  const spacings: ParsedSpacingToken[] = [];
-  
-  for (const [name, token] of Object.entries(tokens)) {
-    if (isTokenValue(token)) {
-      const cleanName = name.replace(/^space-/, '');
-      spacings.push({
-        name: cleanName,
-        value: token.value,
-        cssVariable: `--space-${cleanName}`,
-        numericValue: parseNumericValue(token.value),
-      });
-    }
-  }
-  
-  // Sort by numeric value
-  return spacings.sort((a, b) => a.numericValue - b.numericValue);
+  const result = parseDimensionTokens<ParsedSpacingToken>(
+    tokens, 
+    'spacing', 
+    'space',
+    (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
+  );
+  return result.sort((a, b) => a.numericValue - b.numericValue);
 }
 
 /**
  * Parse radius tokens
  */
 export function parseRadiusTokens(tokens: NestedTokens): ParsedRadiusToken[] {
-  const radiuses: ParsedRadiusToken[] = [];
-  
-  for (const [name, token] of Object.entries(tokens)) {
-    if (isTokenValue(token)) {
-      const cleanName = name.replace(/^radius-/, '');
-      radiuses.push({
-        name: cleanName,
-        value: token.value,
-        cssVariable: `--radius-${cleanName}`,
-        numericValue: parseNumericValue(token.value),
-      });
-    }
-  }
-  
-  return radiuses.sort((a, b) => a.numericValue - b.numericValue);
+  const result = parseDimensionTokens<ParsedRadiusToken>(
+    tokens, 
+    'borderRadius', 
+    'radius',
+    (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
+  );
+  return result.sort((a, b) => a.numericValue - b.numericValue);
 }
 
 /**
  * Parse size tokens
  */
 export function parseSizeTokens(tokens: NestedTokens): ParsedSizeToken[] {
-  const sizes: ParsedSizeToken[] = [];
-  
-  for (const [name, token] of Object.entries(tokens)) {
-    if (isTokenValue(token)) {
-      const cleanName = name.replace(/^size-/, '');
-      sizes.push({
-        name: cleanName,
-        value: token.value,
-        cssVariable: `--size-${cleanName}`,
-        numericValue: parseNumericValue(token.value),
-      });
-    }
-  }
-  
-  return sizes.sort((a, b) => a.numericValue - b.numericValue);
+  const result = parseDimensionTokens<ParsedSizeToken>(
+    tokens, 
+    'sizing', 
+    'size',
+    (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
+  );
+  return result.sort((a, b) => a.numericValue - b.numericValue);
 }
 
 /**

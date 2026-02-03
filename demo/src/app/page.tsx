@@ -7,10 +7,10 @@ import tokens from '../../../tokens.json' // Real tokens from Figma Token Studio
 export default function Home() {
   return (
     <main>
-      <TokenDocumentation 
+      <TokenDocumentation
         tokens={tokens}
         title="@nibin-org/tokens Demo"
-        subtitle="Real tokens from Figma Token Studio - v1.0.6 with Components support"
+        subtitle="Real tokens from Figma Token Studio - v1.6.0 (Production Ready)"
         onTokenClick={(token) => {
           console.log('Token clicked:', token)
         }}

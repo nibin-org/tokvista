@@ -55,24 +55,22 @@ export interface ColorFamily {
   shades: ParsedColorToken[];
 }
 
+export interface VariantTokens {
+  [key: string]: TokenValue;
+}
+
+export interface DimensionGroup {
+  [size: string]: TokenValue;
+}
+
 // Main tokens structure
 export interface FigmaTokens {
   global?: Record<string, unknown>;
-  'Colors/Value'?: {
-    base?: NestedTokens;
-    fill?: NestedTokens;
-    stroke?: NestedTokens;
-    text?: NestedTokens;
-  };
-  'Spacing/Mode 1'?: NestedTokens;
-  'Space/Mode 1'?: NestedTokens; // Alternative naming from Figma
-  'Size/Mode 1'?: NestedTokens;
-  'Radius/Mode 1'?: NestedTokens;
-  'Components/Mode 1'?: NestedTokens;
   $themes?: unknown[];
   $metadata?: {
     tokenSetOrder?: string[];
   };
+  [key: string]: any; // Allow generic folder names
 }
 
 // Component props
@@ -91,6 +89,7 @@ export interface ColorGridProps {
   fillColors?: NestedTokens;
   strokeColors?: NestedTokens;
   textColors?: NestedTokens;
+  tokenMap?: Record<string, string>;
   onColorClick?: (color: ParsedColorToken) => void;
 }
 
