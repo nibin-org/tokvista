@@ -64,7 +64,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nibin-org/tokens"
+    "url": "git+https://github.com/nibin-org/tokens.git"
   },
   "homepage": "https://github.com/nibin-org/tokens#readme",
   "bugs": {
