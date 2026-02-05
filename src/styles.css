@@ -2,11 +2,12 @@
  * @nibin-org/tokens - Production Ready Style
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --ftd-font-sans: 'Inter', system-ui, sans-serif;
-  --ftd-font-mono: 'JetBrains Mono', monospace;
+  --ftd-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ftd-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Consolas', monospace;
+
 
   /* Color System */
   --ftd-bg-page: #ffffff;
@@ -22,6 +23,7 @@
   --ftd-text-muted: #94a3b8;
   
   --ftd-primary: #3b82f6;
+  --ftd-primary-rgb: 59, 130, 246;
   --ftd-primary-fade: rgba(59, 130, 246, 0.1);
 
   --ftd-shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
@@ -44,6 +46,7 @@
   --ftd-text-muted: #64748b;
   
   --ftd-primary: #60a5fa;
+  --ftd-primary-rgb: 96, 165, 250;
   --ftd-primary-fade: rgba(96, 165, 250, 0.15);
   
   --ftd-shadow-card: 0 1px 3px rgba(0,0,0,0.3);

@@ -102,9 +102,9 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
             </div>
 
             {copiedValue && (
-                <div className="ftd-copied-toast">
+                <div className="ftd-copied-toast" role="status" aria-live="polite">
                     <div className="ftd-toast-icon">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
