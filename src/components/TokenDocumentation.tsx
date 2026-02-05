@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { TokenDocumentationProps, FigmaTokens, NestedTokens, VariantTokens, DimensionGroup } from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
+import { SearchModal } from './SearchModal';
 import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils';
 
 type TabType = 'foundation' | 'semantic' | 'components';
@@ -31,6 +32,67 @@ export function TokenDocumentation({
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // Handle scrolling to and highlighting a specific token
+    const handleScrollToToken = (tokenName: string, category: string) => {
+        // Wait a bit for tab content to render
+        setTimeout(() => {
+            // Try to find the token element by data attribute or text content
+            // Look for elements that might contain the token name
+            const possibleSelectors = [
+                `[data-token-name="${tokenName}"]`,
+                `[data-token="${tokenName}"]`,
+            ];
+
+            let tokenElement: HTMLElement | null = null;
+
+            for (const selector of possibleSelectors) {
+                tokenElement = document.querySelector(selector);
+                if (tokenElement) break;
+            }
+
+            // If not found by data attribute, try finding by text content
+            if (!tokenElement) {
+                const allElements = document.querySelectorAll('.ftd-color-shade, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-token-card, .ftd-search-result-item');
+                for (const el of Array.from(allElements)) {
+                    if (el.textContent?.includes(tokenName)) {
+                        tokenElement = el as HTMLElement;
+                        break;
+                    }
+                }
+            }
+
+            if (tokenElement) {
+                // Scroll to the element
+                tokenElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+
+                // Add highlight class
+                tokenElement.classList.add('ftd-token-highlight');
+
+                // Remove highlight after animation
+                setTimeout(() => {
+                    tokenElement?.classList.remove('ftd-token-highlight');
+                }, 2000);
+            }
+        }, 200);
+    };
 
     // --- Extract the three main token sets ---
     const { foundationTokens, semanticTokens, componentTokens } = useMemo(() => {
@@ -249,9 +311,19 @@ export function TokenDocumentation({
                         <h1 className="ftd-title">{title}</h1>
                         <p className="ftd-subtitle">{subtitle}</p>
                     </div>
-                    <button className="ftd-theme-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>
-                        {isDarkMode ? '☀️ Light' : '🌙 Dark'}
-                    </button>
+                    <div className="ftd-header-actions">
+                        <button className="ftd-search-button" onClick={() => setSearchOpen(true)} title="Search tokens (Cmd+K)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <span>Search</span>
+                            <kbd className="ftd-search-shortcut">⌘K</kbd>
+                        </button>
+                        <button className="ftd-theme-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>
+                            {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+                        </button>
+                    </div>
                 </header>
 
                 {availableTabs.length > 1 && (
@@ -294,6 +366,16 @@ export function TokenDocumentation({
                     />
                 )}
             </div>
+
+            {/* Search Modal */}
+            <SearchModal
+                isOpen={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                tokens={tokens}
+                onTokenClick={onTokenClick}
+                onNavigateToTab={(tab) => setActiveTab(tab)}
+                onScrollToToken={handleScrollToToken}
+            />
         </div>
     );
 }

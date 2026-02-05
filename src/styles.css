@@ -1093,3 +1093,331 @@ body {
   color: var(--ftd-primary);
   font-weight: 600;
 }
+
+/* --- Search Modal --- */
+.ftd-search-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 100px 20px;
+  animation: ftd-fade-in 0.2s ease;
+}
+
+@keyframes ftd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ftd-search-container {
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 640px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  animation: ftd-slide-up 0.2s ease;
+}
+
+@keyframes ftd-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ftd-search-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ftd-border);
+}
+
+.ftd-search-icon {
+  color: var(--ftd-text-sub);
+  flex-shrink: 0;
+}
+
+.ftd-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--ftd-font-sans);
+  font-size: 1rem;
+  color: var(--ftd-text-main);
+}
+
+.ftd-search-input::placeholder {
+  color: var(--ftd-text-muted);
+}
+
+.ftd-search-kbd {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  background: var(--ftd-bg-subtle);
+  border: 1px solid var(--ftd-border);
+  border-radius: 4px;
+  color: var(--ftd-text-sub);
+}
+
+.ftd-search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.ftd-search-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ftd-text-sub);
+}
+
+.ftd-search-empty p {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+}
+
+.ftd-search-tips {
+  font-size: 0.85rem;
+  color: var(--ftd-text-muted);
+}
+
+.ftd-search-group {
+  margin-bottom: 16px;
+}
+
+.ftd-search-category-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ftd-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ftd-search-count {
+  background: var(--ftd-bg-hover);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+
+.ftd-search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ftd-search-result-item:hover,
+.ftd-search-result-selected {
+  background: var(--ftd-bg-hover);
+}
+
+.ftd-search-result-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--ftd-border);
+  flex-shrink: 0;
+}
+
+.ftd-search-result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ftd-search-result-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ftd-text-main);
+  margin-bottom: 2px;
+}
+
+.ftd-search-result-name mark {
+  background: var(--ftd-primary-fade);
+  color: var(--ftd-primary);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.ftd-search-result-meta {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.75rem;
+  color: var(--ftd-text-sub);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ftd-search-result-meta mark {
+  background: var(--ftd-primary-fade);
+  color: var(--ftd-primary);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.ftd-search-result-separator {
+  color: var(--ftd-text-muted);
+}
+
+.ftd-search-enter-kbd {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  background: var(--ftd-primary);
+  color: white;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ftd-search-footer {
+  border-top: 1px solid var(--ftd-border);
+  padding: 12px 20px;
+  background: var(--ftd-bg-subtle);
+}
+
+.ftd-search-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--ftd-text-sub);
+}
+
+.ftd-search-footer-hint kbd {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+  .ftd-search-modal {
+    padding: 20px 16px;
+  }
+  
+  .ftd-search-container {
+    max-height: 80vh;
+  }
+  
+  .ftd-search-result-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  
+  .ftd-search-result-separator {
+    display: none;
+  }
+}
+
+/* --- Search Button in Navbar --- */
+.ftd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ftd-search-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--ftd-bg-subtle);
+  border: 1px solid var(--ftd-border);
+  border-radius: 8px;
+  color: var(--ftd-text-main);
+  font-family: var(--ftd-font-sans);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ftd-search-button:hover {
+  background: var(--ftd-bg-hover);
+  border-color: var(--ftd-border-hover);
+}
+
+.ftd-search-button svg {
+  color: var(--ftd-text-sub);
+}
+
+.ftd-search-shortcut {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: 4px;
+  color: var(--ftd-text-sub);
+}
+
+@media (max-width: 768px) {
+  .ftd-search-button span {
+    display: none;
+  }
+  
+  .ftd-search-shortcut {
+    display: none;
+  }
+}
+
+/* --- Token Highlight Animation --- */
+@keyframes ftd-highlight-glow {
+  0% {
+    background: linear-gradient(135deg, 
+      rgba(var(--ftd-primary-rgb), 0.15) 0%, 
+      rgba(var(--ftd-primary-rgb), 0.05) 100%);
+    transform: scale(1);
+  }
+  50% {
+    background: linear-gradient(135deg, 
+      rgba(var(--ftd-primary-rgb), 0.25) 0%, 
+      rgba(var(--ftd-primary-rgb), 0.1) 100%);
+    transform: scale(1.01);
+  }
+  100% {
+    background: linear-gradient(135deg, 
+      rgba(var(--ftd-primary-rgb), 0.15) 0%, 
+      rgba(var(--ftd-primary-rgb), 0.05) 100%);
+    transform: scale(1);
+  }
+}
+
+.ftd-token-highlight {
+  animation: ftd-highlight-glow 0.8s ease-in-out 3;
+  position: relative;
+  z-index: 10;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}

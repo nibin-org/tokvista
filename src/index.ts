@@ -26,6 +26,7 @@ export { SizeScale } from './components/SizeScale';
 export { FoundationTab } from './components/FoundationTab';
 export { SemanticTab } from './components/SemanticTab';
 export { ComponentsTab } from './components/ComponentsTab';
+export { SearchModal } from './components/SearchModal';
 
 // Types
 export type {
