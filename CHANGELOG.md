@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.2] - 2026-02-06
+
+### Changed
+- **Architectural Refactor** 🏗️: Successfully reorganized the monolithic `utils.ts` into domain-specific modules for better maintainability and performance.
+  - `core.ts`: Token detection and resolution.
+  - `color.ts`: Advanced color parsing and contrast logic.
+  - `dimension.ts`: Spacing, size, and radius utilities.
+  - `ui.ts`: Clipboard and browser helpers.
+- **Consistent Naming** 🏷️: Standardized all documentation components to use the `*Display` suffix (e.g., `ColorDisplay`, `RadiusDisplay`, `SpacingDisplay`, `SizeDisplay`).
+- **Dependency Cleanup** 🧹: Removed `lodash-es` dependency to reduce bundle size and complexity.
+- **Public API Cleanup**: Refined `src/index.ts` with cleaner exports and deprecated aliases for backward compatibility.
+
+### Fixed 🐛
+- **Scroll Positioning**: Fixed sticky navbar covering section headers by implementing accurate `scroll-margin-top`.
+- **Navigation Active State**: Fixed sidebar highlighting jitter by optimizing `IntersectionObserver` root margins.
+- **Card Styling**: Fixed inconsistent padding in Spacing, Size, and Radius cards to match the premium full-bleed style of Color cards.
+
+## [1.12.0] - 2026-02-06
+
+### Added
+- **Unified Click-to-Copy Experience** 📋: Standardized the copy behavior across all foundation tokens (Spacing, Sizes, Radius, Typography). 
+  - Clicking any token card now copies the CSS variable in `var(--variable)` format.
+  - Removed separate click targets for a cleaner, more intuitive UX.
+- **Improved Typography Tokens** 🔤: Replaced blue boxes with intuitive "Aa" text previews for font-size and vertical rhythm indicators for line-height.
+- **Naming Convention Refactor** 🛠️: Cleaned up foundation token CSS variables!
+  - Foundation colors now consistently use the `--base-` prefix (e.g., `--base-teal-50`).
+  - Spatial/dimension tokens (Spacing, Sizes, Radius) now export without the `--base-` prefix for cleaner usage (e.g., `--size-xl`).
+- **Premium Visual Feedback** ✨: Added subtle hover "lift" effects and border-color transitions to all interactive token cards.
+
 ## [1.11.0] - 2026-02-06
 
 ### Added

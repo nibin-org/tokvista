@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { NestedTokens } from '../types';
-import { SpacingScale } from './SpacingScale';
-import { SizeScale } from './SizeScale';
-import { RadiusShowcase } from './RadiusShowcase';
-import { getContrastColor, copyToClipboard } from '../utils';
+import { SpacingDisplay } from './SpacingDisplay';
+import { SizeDisplay } from './SizeDisplay';
+import { RadiusDisplay } from './RadiusDisplay';
+import { getContrastColor } from '../utils/color';
+import { copyToClipboard } from '../utils/ui';
 
 interface FoundationTabProps {
     tokens: NestedTokens;
@@ -81,7 +82,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
 
     // Scroll Spy
     useEffect(() => {
-        const options = { rootMargin: '-100px 0px -50% 0px', threshold: 0 };
+        const options = { rootMargin: '-180px 0px -70% 0px', threshold: 0 };
         observer.current = new IntersectionObserver((entries) => {
             const intersecting = entries.find(entry => entry.isIntersecting);
             if (intersecting) {
@@ -89,7 +90,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
             }
         }, options);
 
-        const sectionElements = document.querySelectorAll('.ftd-foundation-section');
+        const sectionElements = document.querySelectorAll('.ftd-scroll-target');
         sectionElements.forEach((el) => observer.current?.observe(el));
 
         return () => observer.current?.disconnect();
@@ -127,9 +128,9 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
 
             <div className="ftd-color-content">
                 {sections.map((section) => (
-                    <div key={section.id} id={section.id} className="ftd-foundation-section">
+                    <div key={section.id} className="ftd-foundation-section">
                         {section.type === 'colors' && (
-                            <div className="ftd-section">
+                            <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
                                     <div className="ftd-section-icon">🎨</div>
                                     <h2 className="ftd-section-title">Base Colors</h2>
@@ -144,25 +145,31 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                         )}
 
                         {section.type === 'spacing' && (
-                            <SpacingScale tokens={section.tokens} onTokenClick={onTokenClick} />
+                            <div id={section.id} className="ftd-scroll-target">
+                                <SpacingDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
+                            </div>
                         )}
 
                         {section.type === 'sizing' && (
-                            <SizeScale tokens={section.tokens} onTokenClick={onTokenClick} />
+                            <div id={section.id} className="ftd-scroll-target">
+                                <SizeDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
+                            </div>
                         )}
 
                         {section.type === 'radius' && (
-                            <RadiusShowcase tokens={section.tokens} onTokenClick={onTokenClick} />
+                            <div id={section.id} className="ftd-scroll-target">
+                                <RadiusDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
+                            </div>
                         )}
 
                         {section.type === 'typography' && (
-                            <div className="ftd-section">
+                            <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
                                     <div className="ftd-section-icon">🔤</div>
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
-                                <TypographyDisplay tokens={section.tokens} />
+                                <TypographyDisplay tokens={section.tokens} familyName={section.id.replace('typo-', '')} />
                             </div>
                         )}
                     </div>
@@ -172,22 +179,100 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
     );
 }
 
-function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
+function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; familyName: string }) {
+    const [copiedValue, setCopiedValue] = useState<string | null>(null);
+
     const entries = Object.entries(tokens).filter(([_, value]) =>
         value && typeof value === 'object' && 'value' in value && 'type' in value
     );
 
+    const showToast = (value: string) => {
+        setCopiedValue(value);
+        setTimeout(() => setCopiedValue(null), 2000);
+    };
+
     if (entries.length === 0) return null;
 
     return (
-        <div className="ftd-typography-grid">
-            {entries.map(([name, token]: [string, any]) => (
-                <div key={name} className="ftd-typography-card" data-token-name={name}>
-                    <div className="ftd-typography-label">{name}</div>
-                    <div className="ftd-typography-value">{token.value}</div>
+        <>
+            <div className="ftd-token-grid">
+                {entries.map(([name, token]: [string, any]) => {
+                    const cssVar = `--${familyName}-${name}`;
+                    const varValue = `var(${cssVar})`;
+                    const isLineHeight = familyName.toLowerCase().includes('line');
+                    const isFontSize = familyName.toLowerCase().includes('size') || familyName.toLowerCase().includes('font');
+
+                    return (
+                        <div
+                            key={name}
+                            className="ftd-display-card ftd-clickable-card"
+                            data-token-name={name}
+                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
+                            title={`Click to copy: ${varValue}`}
+                        >
+                            <div className="ftd-token-preview-container">
+                                {isFontSize ? (
+                                    <div
+                                        style={{
+                                            fontSize: token.value,
+                                            fontWeight: 600,
+                                            color: 'var(--ftd-primary)',
+                                            lineHeight: 1
+                                        }}
+                                    >
+                                        Aa
+                                    </div>
+                                ) : isLineHeight ? (
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: token.value,
+                                            width: '32px'
+                                        }}
+                                    >
+                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
+                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="ftd-token-preview"
+                                        style={{
+                                            width: '16px',
+                                            height: token.value,
+                                            borderRadius: '2px',
+                                        }}
+                                    />
+                                )}
+                            </div>
+                            <p className="ftd-token-card-label">{name}</p>
+                            <div className="ftd-token-values-row">
+                                <span className="ftd-token-css-var">
+                                    {cssVar}
+                                </span>
+                                <span className="ftd-token-hex">
+                                    {token.value}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {copiedValue && (
+                <div className="ftd-copied-toast">
+                    <div className="ftd-toast-icon">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div className="ftd-toast-content">
+                        <span className="ftd-toast-label">Copied</span>
+                        <span className="ftd-toast-value">{copiedValue}</span>
+                    </div>
                 </div>
-            ))}
-        </div>
+            )}
+        </>
     );
 }
 

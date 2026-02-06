@@ -7,7 +7,7 @@ import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
 import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
-import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils';
+import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils/core';
 
 type TabType = 'foundation' | 'semantic' | 'components';
 

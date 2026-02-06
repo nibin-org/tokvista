@@ -344,11 +344,6 @@ body {
   height: fit-content;
 }
 
-.ftd-color-section {
-  scroll-margin-top: 180px; /* Ensures gap after navigation */
-  margin-bottom: 40px;
-}
-
 .ftd-color-nav {
   display: flex;
   flex-direction: column;
@@ -889,34 +884,42 @@ body {
   font-weight: 600;
 }
 
-.ftd-radius-grid {
+.ftd-token-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 20px;
 }
 
-.ftd-radius-item {
+.ftd-display-card {
   background: var(--ftd-bg-card);
   border: 1px solid var(--ftd-border);
   border-radius: 12px;
-  padding: 20px;
+  padding: 0;
   text-align: center;
+  overflow: hidden;
   transition: all 0.2s;
-  cursor: pointer;
 }
 
-.ftd-radius-item:hover {
-  transform: translateY(-4px);
+.ftd-display-card .ftd-token-card-label {
+  padding: 16px 16px 4px 16px;
+  margin: 0;
+}
+
+.ftd-display-card .ftd-token-values-row {
+  padding: 0 16px 16px 16px;
+}
+
+.ftd-display-card:hover {
+  transform: translateY(-2px);
   box-shadow: var(--ftd-shadow-hover);
-  border-color: var(--ftd-primary);
 }
 
-.ftd-radius-preview-container {
+.ftd-token-preview-container {
   height: 80px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   background: repeating-linear-gradient(
     45deg,
     var(--ftd-bg-page),
@@ -924,17 +927,16 @@ body {
     var(--ftd-bg-subtle) 5px,
     var(--ftd-bg-subtle) 10px
   );
-  border-radius: 8px;
 }
 
-.ftd-radius-preview {
-  width: 50px;
-  height: 50px;
+.ftd-token-preview {
+  width: 48px;
+  height: 48px;
   background: var(--ftd-primary);
   box-shadow: 0 4px 12px rgba(var(--ftd-primary-rgb), 0.2);
 }
 
-.ftd-radius-label {
+.ftd-token-card-label {
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0 0 4px;
@@ -965,20 +967,12 @@ body {
   box-shadow: var(--ftd-shadow-card);
 }
 
-/* Typography Display */
-.ftd-typography-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
+.ftd-scroll-target {
+  scroll-margin-top: 200px; /* Account for sticky navbar */
 }
 
-.ftd-typography-card {
-  background: var(--ftd-bg-subtle);
-  border: 1px solid var(--ftd-border);
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s;
-}
+/* Typography Display */
+
 
 .ftd-typography-card:hover {
   transform: translateY(-2px);
@@ -1032,8 +1026,6 @@ body {
   .ftd-color-shade { min-width: 80px; }
   .ftd-variant-card { width: 100%; }
   .ftd-color-family { width: 100%; }
-  .ftd-typography-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-  .ftd-semantic-grid { grid-template-columns: 1fr; }
 }
 /* --- Component Dimensions Display --- */
 .ftd-dimensions-display {
@@ -1716,4 +1708,21 @@ body {
 .ftd-color-shade.ftd-token-highlight {
   outline: 4px solid var(--ftd-primary) !important;
   outline-offset: -4px;
+}
+
+.ftd-clickable-card,
+.ftd-clickable-preview {
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.ftd-clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ftd-shadow-hover);
+  border-color: var(--ftd-primary);
+}
+
+.ftd-clickable-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px var(--ftd-primary);
 }

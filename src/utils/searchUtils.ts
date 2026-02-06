@@ -86,7 +86,8 @@ function indexFoundationTokens(baseTokens: NestedTokens): SearchableToken[] {
       Object.entries(family).forEach(([tokenName, tokenValue]) => {
         if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
           const value = String(tokenValue.value);
-          const cssVar = `--base-${familyName}-${tokenName}`;
+          const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => familyName.toLowerCase().includes(k));
+          const cssVar = isSpatial ? `--${familyName}-${tokenName}` : `--base-${familyName}-${tokenName}`;
           
           tokens.push({
             id: `foundation-${familyName}-${tokenName}`,
@@ -176,7 +177,8 @@ function indexComponentTokens(components: Record<string, any>): SearchableToken[
 function determineTokenType(name: string): SearchableToken['type'] {
   const nameLower = name.toLowerCase();
   
-  if (nameLower.includes('color') || nameLower.includes('fill') || nameLower.includes('stroke')) {
+  if (nameLower.includes('color') || nameLower.includes('fill') || nameLower.includes('stroke') ||
+      ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'cyan', 'gray', 'slate', 'teal', 'pink', 'white', 'black', 'coolgray'].some(c => nameLower.includes(c))) {
     return 'color';
   }
   if (nameLower.includes('space') || nameLower.includes('spacing')) {

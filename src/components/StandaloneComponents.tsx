@@ -2,11 +2,11 @@
 
 import React, { useMemo } from 'react';
 import type { StandaloneTokenProps } from '../types';
-import { ColorGrid } from './ColorGrid';
-import { SpacingScale } from './SpacingScale';
-import { SizeScale } from './SizeScale';
-import { RadiusShowcase } from './RadiusShowcase';
-import { createTokenMap } from '../utils';
+import { ColorDisplay } from './ColorDisplay';
+import { SpacingDisplay } from './SpacingDisplay';
+import { SizeDisplay } from './SizeDisplay';
+import { RadiusDisplay } from './RadiusDisplay';
+import { createTokenMap } from '../utils/core';
 
 /**
  * Spacing - Standalone component to display spacing tokens
@@ -20,7 +20,7 @@ export function Spacing({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     return (
         <div className="ftd-standalone">
             {title && <h2 className="ftd-standalone-title">{title}</h2>}
-            <SpacingScale tokens={spacingData} onTokenClick={onTokenClick} />
+            <SpacingDisplay tokens={spacingData} onTokenClick={onTokenClick} />
         </div>
     );
 }
@@ -46,7 +46,7 @@ export function Colors({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     return (
         <div className="ftd-standalone">
             {title && <h2 className="ftd-standalone-title">{title}</h2>}
-            <ColorGrid
+            <ColorDisplay
                 baseColors={base}
                 fillColors={fill}
                 strokeColors={stroke}
@@ -70,7 +70,7 @@ export function Sizes({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     return (
         <div className="ftd-standalone">
             {title && <h2 className="ftd-standalone-title">{title}</h2>}
-            <SizeScale tokens={sizingData} onTokenClick={onTokenClick} />
+            <SizeDisplay tokens={sizingData} onTokenClick={onTokenClick} />
         </div>
     );
 }
@@ -87,7 +87,7 @@ export function Radius({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     return (
         <div className="ftd-standalone">
             {title && <h2 className="ftd-standalone-title">{title}</h2>}
-            <RadiusShowcase tokens={radiusData} onTokenClick={onTokenClick} />
+            <RadiusDisplay tokens={radiusData} onTokenClick={onTokenClick} />
         </div>
     );
 }

@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { SpacingScaleProps, ParsedSpacingToken } from '../types';
-import { parseSpacingTokens, copyToClipboard } from '../utils';
+import type { SpacingDisplayProps, ParsedSpacingToken } from '../types';
+import { parseSpacingTokens } from '../utils/dimension';
+import { copyToClipboard } from '../utils/ui';
 
 /**
- * SpacingScale - Visual representation of spacing tokens
+ * SpacingDisplay - Visual representation of spacing tokens
  * Shows horizontal bars with proportional widths
  */
-export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
+export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     const [copiedValue, setCopiedValue] = useState<string | null>(null);
 
     const spacingTokens = parseSpacingTokens(tokens);
@@ -45,33 +46,34 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
                 <span className="ftd-section-count">{spacingTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-spacing-list">
+            <div className="ftd-token-grid">
                 {spacingTokens.map((token) => {
-                    const widthPercent = (token.numericValue / maxValue) * 100;
+                    const varValue = `var(${token.cssVariable})`;
 
                     return (
-                        <div key={token.name} className="ftd-spacing-item" data-token-name={token.name}>
-                            <span className="ftd-spacing-label">{token.name}</span>
-                            <div className="ftd-spacing-bar-container">
+                        <div
+                            key={token.name}
+                            className="ftd-display-card ftd-clickable-card"
+                            data-token-name={token.name}
+                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
+                            title={`Click to copy: ${varValue}`}
+                        >
+                            <div className="ftd-token-preview-container">
                                 <div
-                                    className="ftd-spacing-bar"
-                                    style={{ width: `${Math.max(widthPercent, 2)}%` }}
+                                    className="ftd-token-preview"
+                                    style={{
+                                        width: token.value,
+                                        height: '8px',
+                                        borderRadius: '2px',
+                                    }}
                                 />
                             </div>
-                            <div className="ftd-token-values-row" style={{ flexDirection: 'row', gap: '8px', minWidth: 'fit-content' }}>
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={() => copyToClipboard(token.cssVariable).then(() => showToast(token.cssVariable))}
-                                    title={`Copy CSS: ${token.cssVariable}`}
-                                >
+                            <p className="ftd-token-card-label">{token.name}</p>
+                            <div className="ftd-token-values-row">
+                                <span className="ftd-token-css-var">
                                     {token.cssVariable}
                                 </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={() => handleCopy(token)}
-                                    title={`Copy Value: ${token.value}`}
-                                    style={{ minWidth: '60px', textAlign: 'center' }}
-                                >
+                                <span className="ftd-token-hex">
                                     {token.value}
                                 </span>
                             </div>
@@ -98,4 +100,4 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
     );
 }
 
-export default SpacingScale;
+export default SpacingDisplay;

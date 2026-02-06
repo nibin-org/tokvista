@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { NestedTokens, ParsedColorToken } from '../types';
-import { parseSemanticColors, getContrastColor, copyToClipboard } from '../utils';
+import { parseSemanticColors, getContrastColor } from '../utils/color';
+import { copyToClipboard } from '../utils/ui';
 
 interface SemanticTabProps {
     tokens: NestedTokens;
@@ -105,7 +106,7 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
             {/* Content Area */}
             <div className="ftd-color-content">
                 {sections.map((section) => (
-                    <div key={section.id} id={section.id} className="ftd-semantic-section ftd-section">
+                    <div key={section.id} id={section.id} className="ftd-semantic-section ftd-section ftd-scroll-target">
                         <div className="ftd-section-header">
                             <div className="ftd-section-icon">{section.icon}</div>
                             <h2 className="ftd-section-title">{section.name} Colors</h2>

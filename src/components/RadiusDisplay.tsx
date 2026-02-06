@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { RadiusShowcaseProps, ParsedRadiusToken } from '../types';
-import { parseRadiusTokens, copyToClipboard } from '../utils';
+import type { RadiusDisplayProps, ParsedRadiusToken } from '../types';
+import { parseRadiusTokens } from '../utils/dimension';
+import { copyToClipboard } from '../utils/ui';
 
 /**
- * RadiusShowcase - Visual demonstration of border radius tokens
+ * RadiusDisplay - Visual demonstration of border radius tokens
  * Shows boxes with actual border radius applied
  */
-export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
+export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
     const [copiedValue, setCopiedValue] = useState<string | null>(null);
 
     const radiusTokens = parseRadiusTokens(tokens);
@@ -44,34 +45,35 @@ export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
                 <span className="ftd-section-count">{radiusTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-radius-grid">
-                {radiusTokens.map((token) => (
-                    <div key={token.name} className="ftd-radius-item" data-token-name={token.name}>
-                        <div className="ftd-radius-preview-container">
-                            <div
-                                className="ftd-radius-preview"
-                                style={{ borderRadius: token.value }}
-                            />
+            <div className="ftd-token-grid">
+                {radiusTokens.map((token) => {
+                    const varValue = `var(${token.cssVariable})`;
+                    return (
+                        <div
+                            key={token.name}
+                            className="ftd-display-card ftd-clickable-card"
+                            data-token-name={token.name}
+                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
+                            title={`Click to copy: ${varValue}`}
+                        >
+                            <div className="ftd-token-preview-container">
+                                <div
+                                    className="ftd-token-preview"
+                                    style={{ borderRadius: token.value }}
+                                />
+                            </div>
+                            <p className="ftd-token-card-label">{token.name}</p>
+                            <div className="ftd-token-values-row">
+                                <span className="ftd-token-css-var">
+                                    {token.cssVariable}
+                                </span>
+                                <span className="ftd-token-hex">
+                                    {token.value}
+                                </span>
+                            </div>
                         </div>
-                        <p className="ftd-radius-label">{token.name}</p>
-                        <div className="ftd-token-values-row">
-                            <span
-                                className="ftd-token-css-var"
-                                onClick={() => copyToClipboard(token.cssVariable).then(() => showToast(token.cssVariable))}
-                                title={`Copy CSS: ${token.cssVariable}`}
-                            >
-                                {token.cssVariable}
-                            </span>
-                            <span
-                                className="ftd-token-hex"
-                                onClick={() => handleCopy(token)}
-                                title={`Copy Value: ${token.value}`}
-                            >
-                                {token.value}
-                            </span>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Premium Copy Toast */}
@@ -92,4 +94,4 @@ export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
     );
 }
 
-export default RadiusShowcase;
+export default RadiusDisplay;

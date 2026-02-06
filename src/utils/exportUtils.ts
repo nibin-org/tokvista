@@ -20,7 +20,17 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
   if (aliasMatch) {
     const path = aliasMatch[1];
     // Replace dots with hyphens: base.blue.50 -> base-blue-50
-    const cleanPath = path.replace(/\./g, '-');
+    let cleanPath = path.replace(/\./g, '-');
+    
+    // Remove base- prefix if it's not a color
+    if (cleanPath.startsWith('base-')) {
+      const afterBase = cleanPath.slice(5).toLowerCase();
+      const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => afterBase.includes(k));
+      
+      if (isSpatial) {
+        cleanPath = path.replace(/\./g, '-').slice(5); // Remove 'base-'
+      }
+    }
     
     if (format === 'css') {
       return `var(--${cleanPath})`;
@@ -38,16 +48,17 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
 export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
   const flattened: ExportableToken[] = [];
 
-  const determineType = (name: string) => {
-    const n = name.toLowerCase();
-    if (n.includes('color') || n.includes('fill') || n.includes('stroke') || 
-        ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'cyan', 'gray', 'slate'].some(c => n.includes(c))) return 'color';
-    if (n.includes('space') || n.includes('spacing')) return 'spacing';
-    if (n.includes('size')) return 'size';
-    if (n.includes('radius')) return 'radius';
-    if (n.includes('font') || n.includes('line-height') || n.includes('typography')) return 'typography';
-    return 'dimension';
-  };
+    const determineType = (name: string, tokenType?: string) => {
+      const n = name.toLowerCase();
+      const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => n.includes(k));
+      
+      if (tokenType === 'color' || (!isSpatial && (n.includes('color') || n.includes('fill') || n.includes('stroke') || !isSpatial))) return 'color';
+      if (n.includes('space') || n.includes('spacing')) return 'spacing';
+      if (n.includes('size')) return 'size';
+      if (n.includes('radius')) return 'radius';
+      if (n.includes('font') || n.includes('line-height') || n.includes('typography')) return 'typography';
+      return 'dimension';
+    };
 
   // 1. Foundation Tokens
   if (tokens['Foundation/Value']?.base) {
@@ -56,11 +67,15 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
       if (typeof family === 'object' && family !== null) {
         Object.entries(family).forEach(([tokenName, tokenValue]: [string, any]) => {
           if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue) {
+            const tokenType = determineType(familyName, tokenValue.type);
+            const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => familyName.toLowerCase().includes(k));
+            const isColor = tokenType === 'color' || !isSpatial;
+            
             flattened.push({
-              name: `base-${familyName}-${tokenName}`,
+              name: isColor ? `base-${familyName}-${tokenName}` : `${familyName}-${tokenName}`,
               value: String(tokenValue.value),
-              cssVariable: `--base-${familyName}-${tokenName}`,
-              type: determineType(familyName),
+              cssVariable: isColor ? `--base-${familyName}-${tokenName}` : `--${familyName}-${tokenName}`,
+              type: tokenType,
               category: 'Foundation',
             });
           }

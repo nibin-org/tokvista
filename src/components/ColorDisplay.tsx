@@ -1,20 +1,22 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type { ColorGridProps, ParsedColorToken, NestedTokens } from '../types';
-import { parseBaseColors, parseSemanticColors, getContrastColor, copyToClipboard, createTokenMap, resolveTokenValue } from '../utils';
+import type { ColorDisplayProps, ParsedColorToken, NestedTokens } from '../types';
+import { parseBaseColors, parseSemanticColors, getContrastColor } from '../utils/color';
+import { copyToClipboard } from '../utils/ui';
+import { createTokenMap } from '../utils/core';
 
 /**
- * ColorGrid - Beautiful visualization of color tokens
+ * ColorDisplay - Beautiful visualization of color tokens
  */
-export function ColorGrid({
+export function ColorDisplay({
     baseColors,
     fillColors,
     strokeColors,
     textColors,
     tokenMap: externalTokenMap,
     onColorClick,
-}: ColorGridProps) {
+}: ColorDisplayProps) {
     const [copiedValue, setCopiedValue] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>('base-colors');
     const observer = useRef<IntersectionObserver | null>(null);
@@ -217,4 +219,4 @@ function ColorCard({ color, onCopy, onCopyText }: { color: ParsedColorToken; onC
     );
 }
 
-export default ColorGrid;
+export default ColorDisplay;

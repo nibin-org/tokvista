@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![npm version](https://img.shields.io/npm/v/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
+![npm version](https://img.shields.io/badge/version-1.13.2-5b47fb?style=for-the-badge&colorA=000000)
 ![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
@@ -14,6 +14,11 @@
 
 ---
 
+## 📚 Workflow Guide
+**New to Design Tokens?** Learn how to set up Figma, Token Studio, and GitHub Sync in our **[Design Token Workflow Guide](./GUIDE.md)**.
+
+---
+
 ## 💎 Best in Segment Features
 
 - 🔍 **Global Search** - `Cmd+K` to find any token across Foundation, Semantic, or Components instantly.
@@ -21,7 +26,7 @@
 - 🎨 **Smart Visualization** - Interactive color palettes, spacing scales, and component previews that feel premium.
 - 🧠 **Alias Resolution** - Intelligent engine that resolves Figma Token Studio aliases into production-ready code.
 - 🌙 **Adaptive Themes** - Seamless dark and light mode support out of the box.
-- 📦 **Ultra Lightweight** - Under 136KB with zero external dependencies.
+- 📦 **Ultra Lightweight** - Zero external dependencies.
 
 ---
 

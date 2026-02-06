@@ -84,7 +84,7 @@ export interface TokenDocumentationProps {
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
 }
 
-export interface ColorGridProps {
+export interface ColorDisplayProps {
   baseColors?: NestedTokens;
   fillColors?: NestedTokens;
   strokeColors?: NestedTokens;
@@ -93,17 +93,17 @@ export interface ColorGridProps {
   onColorClick?: (color: ParsedColorToken) => void;
 }
 
-export interface SpacingScaleProps {
+export interface SpacingDisplayProps {
   tokens: NestedTokens;
   onTokenClick?: (token: ParsedSpacingToken) => void;
 }
 
-export interface RadiusShowcaseProps {
+export interface RadiusDisplayProps {
   tokens: NestedTokens;
   onTokenClick?: (token: ParsedRadiusToken) => void;
 }
 
-export interface SizeScaleProps {
+export interface SizeDisplayProps {
   tokens: NestedTokens;
   onTokenClick?: (token: ParsedSizeToken) => void;
 }
