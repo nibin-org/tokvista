@@ -24,7 +24,7 @@ These are your raw values. **Do not use these directly in your designs.**
   - `Foundation/Spacing/4` -> `16px`
   - `Foundation/Radius/md` -> `8px`
 
-<p align="center">
+<p>
   <img src="./assets/1.png" alt="Foundation Layer Example" />
   <br />
   <em>Example of Foundation tokens showing color values organized by type (base, blue-gray, gray, green, etc.)</em>
@@ -44,7 +44,7 @@ These define **how** to use the primitives. These are what designers should use.
   - `Semantic/text/danger` -> `{Foundation.Red.600}`
   - `Semantic/radius/card` -> `{Foundation.Radius.md}`
 
-<p align="center">
+<p>
   <img src="./assets/2.png" alt="Semantic Layer Example" />
   <br />
   <em>Example of Semantic tokens showing semantic color roles like background/button, background/card, semantic/stroke/warning, etc.</em>
@@ -62,7 +62,7 @@ Overrides for specific components.
 - **Examples**:
   - `Components/Button/bg` -> `{Semantic.bg.primary}`
 
-<p align="center">
+<p>
   <img src="./assets/3.png" alt="Components Layer Example" />
   <br />
   <em>Example of Component tokens showing specific overrides like accordion, semantic/stroke/default, scrollbar, etc.</em>
@@ -79,21 +79,21 @@ Overrides for specific components.
 2. Search for "**Tokens Studio for Figma**"
 3. Click on the plugin to open it
 
-<p align="center">
+<p>
   <img src="./assets/4.png" alt="Opening Plugins Menu" />
   <br />
   <em>Navigate to Plugins in the Figma menu</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/5.png" alt="Finding Tokens Studio" />
   <br />
   <em>Search for "Tokens Studio for Figma" in the plugins list</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/6.png" alt="Opening Tokens Studio" />
   <br />
   <em>The Tokens Studio for Figma welcome screen with options to create a new file or load an example</em>
@@ -111,7 +111,7 @@ Overrides for specific components.
    - **Language**: Choose your preferred language (English)
    - **Base font size**: Set to `16` (standard) so `rem` conversions work correctly
 
-<p align="center">
+<p>
   <img src="./assets/7.png" alt="Settings Tab" />
   <br />
   <em>Settings tab showing sync providers and configuration options</em>
@@ -130,14 +130,14 @@ Automate the handoff so developers always have the latest tokens. This is a cruc
 2. Under **Sync providers**, click **Add new sync provider**
 3. Select **GitHub** from the list of available providers
 
-<p align="center">
+<p>
   <img src="./assets/7.png" alt="Sync Providers" />
   <br />
   <em>The Settings panel showing "Add new sync provider" option</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/8.png" alt="Choosing GitHub" />
   <br />
   <em>List of available sync providers including GitHub, URL, JSONBIN, GitLab, Azure DevOps, BitBucket, Supernova, and Generic Versioned</em>
@@ -150,7 +150,7 @@ Automate the handoff so developers always have the latest tokens. This is a cruc
 
 Fill in the GitHub sync configuration form with your repository details:
 
-<p align="center">
+<p>
   <img src="./assets/9.png" alt="GitHub Configuration Form" />
   <br />
   <em>GitHub sync configuration form showing fields for Name, Personal Access Token, Repository, Branch, and Token storage location</em>
@@ -187,7 +187,7 @@ Fill in the GitHub sync configuration form with your repository details:
 
 Once configured, you can start creating and organizing your tokens:
 
-<p align="center">
+<p>
   <img src="./assets/10.png" alt="Token Organization" />
   <br />
   <em>Tokens Studio interface showing Foundation, Semantic, and Components sets with color tokens displayed</em>
@@ -206,14 +206,14 @@ Once configured, you can start creating and organizing your tokens:
 
 You can import tokens from Figma variables or export them:
 
-<p align="center">
+<p>
   <img src="./assets/10.png" alt="Import/Export Options" />
   <br />
   <em>Bottom toolbar showing options for "Export styles & variables to Figma", "Import variables", and "Import styles"</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/11.png" alt="Import Variables Dialog" />
   <br />
   <em>Import variables dialog showing options to select variable collections and modes (Foundation, Semantic, Components with their respective values)</em>
@@ -233,7 +233,7 @@ After creating or updating your tokens, push them to GitHub:
 
 1. Click the **Push to GitHub** button in the bottom toolbar
 
-<p align="center">
+<p>
   <img src="./assets/12.png" alt="Ready to Push" />
   <br />
   <em>Tokens Studio showing the "Push to GitHub" button in the bottom toolbar</em>
@@ -242,7 +242,7 @@ After creating or updating your tokens, push them to GitHub:
 
 2. Enter a commit message and select the branch
 
-<p align="center">
+<p>
   <img src="./assets/13.png" alt="Commit Dialog" />
   <br />
   <em>Push to GitHub dialog showing commit message field ("Token update"), branch selection (main), and the "Push Changes" button</em>
@@ -251,7 +251,7 @@ After creating or updating your tokens, push them to GitHub:
 
 3. Click **Push Changes** and wait for the sync to complete
 
-<p align="center">
+<p>
   <img src="./assets/14.png" alt="Pushing Progress" />
   <br />
   <em>Loading screen showing "Pushing to GitHub" in progress</em>
@@ -260,7 +260,7 @@ After creating or updating your tokens, push them to GitHub:
 
 4. Confirm successful push
 
-<p align="center">
+<p>
   <img src="./assets/15.png" alt="Success Confirmation" />
   <br />
   <em>Success dialog showing "All done! Changes pushed to GitHub" with option to "Create Pull Request"</em>
@@ -273,21 +273,21 @@ After creating or updating your tokens, push them to GitHub:
 
 Check your GitHub repository to confirm the tokens were pushed successfully:
 
-<p align="center">
+<p>
   <img src="./assets/16.png" alt="GitHub Actions Running" />
   <br />
   <em>GitHub Actions page showing "Token updation" workflow in progress</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/17.png" alt="GitHub Actions Complete" />
   <br />
   <em>GitHub Actions page showing successful completion of the "Token updation" workflow</em>
 </p>
 
 
-<p align="center">
+<p>
   <img src="./assets/18.png" alt="Updated Files" />
   <br />
   <em>GitHub repository showing the updated tokens.json file with timestamp "1 minute ago"</em>
