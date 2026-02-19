@@ -253,8 +253,8 @@ function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; famil
     if (entries.length === 0) return null;
 
     return (
-        <>
-            <div className="ftd-token-grid">
+        <div className="ftd-size-family">
+            <div className="ftd-size-metrics-grid">
                 {entries.map(([name, token]: [string, any]) => {
                     const cssVar = `--${familyName}-${name}`;
                     const varValue = `var(${cssVar})`;
@@ -264,17 +264,15 @@ function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; famil
                     return (
                         <div
                             key={name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={name}
+                            className="ftd-size-metric-chip"
                             onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
-                            title={`Click to copy: ${varValue}`}
                         >
-                            <div className="ftd-token-preview-container">
+                            <div className="ftd-size-metric-viz">
                                 {isFontSize ? (
                                     <div
                                         style={{
                                             fontSize: token.value,
-                                            fontWeight: 600,
+                                            fontWeight: 900,
                                             color: 'var(--ftd-primary)',
                                             lineHeight: 1
                                         }}
@@ -290,28 +288,26 @@ function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; famil
                                             width: '32px'
                                         }}
                                     >
-                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
-                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
+                                        <div style={{ height: '3px', background: 'var(--ftd-primary)', width: '100%', borderRadius: '2px' }} />
+                                        <div style={{ height: '3px', background: 'var(--ftd-primary)', width: '100%', borderRadius: '2px' }} />
                                     </div>
                                 ) : (
                                     <div
-                                        className="ftd-token-preview"
-                                        style={{
-                                            width: '16px',
-                                            height: token.value,
-                                            borderRadius: '2px',
-                                        }}
+                                        className="ftd-size-metric-gauge"
+                                        style={{ height: '8px', width: '20px' }}
                                     />
                                 )}
+
+                                {/* Premium Frosted Tooltip */}
+                                <div className="ftd-shade-tooltip">
+                                    <span className="ftd-tooltip-var">{cssVar}</span>
+                                    <span className="ftd-tooltip-hex">{token.value}</span>
+                                </div>
                             </div>
-                            <p className="ftd-token-card-label">{name}</p>
-                            <div className="ftd-token-values-row">
-                                <span className="ftd-token-css-var">
-                                    {cssVar}
-                                </span>
-                                <span className="ftd-token-hex">
-                                    {token.value}
-                                </span>
+
+                            <div className="ftd-size-metric-info">
+                                <span className="ftd-color-shade-label">{name}</span>
+                                <span className="ftd-shade-hex">{token.value}</span>
                             </div>
                         </div>
                     );
@@ -331,7 +327,7 @@ function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; famil
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
 
@@ -361,36 +357,44 @@ function ColorFamiliesDisplay({
     return (
         <div className="ftd-color-family-container">
             {Object.entries(colorFamilies).map(([familyName, shades]: [string, any]) => {
-                const shadeKeys = Object.keys(shades);
-                const midShade = shades[shadeKeys[Math.floor(shadeKeys.length / 2)]];
-                const familyColor = midShade?.value || '#000';
+                const shadeEntries = Object.entries(shades);
+                const shadeValues = shadeEntries.map(([, token]: [string, any]) => (token as any).value);
+                const gradientBg = `linear-gradient(to right, ${shadeValues.join(', ')})`;
 
                 return (
                     <div key={familyName} className="ftd-color-family">
                         <div className="ftd-color-family-header">
-                            <div className="ftd-color-family-swatch" style={{ backgroundColor: familyColor }} />
+                            <div className="ftd-color-family-swatch" style={{ background: gradientBg }} />
                             <h3 className="ftd-color-family-name">{familyName}</h3>
                         </div>
 
+                        {/* Paint chip swatch fan */}
                         <div className="ftd-color-scale">
                             {Object.entries(shades).map(([shadeName, shadeToken]: [string, any]) => {
                                 const bgColor = shadeToken.value;
-                                const textColor = getContrastColor(bgColor);
                                 const cssVar = `--base-${familyName}-${shadeName}`;
                                 const tokenFullName = `${familyName}-${shadeName}`;
+                                const shortHex = bgColor.length > 7 ? bgColor.substring(0, 7) : bgColor;
 
                                 return (
                                     <div
                                         key={shadeName}
                                         className="ftd-color-shade"
                                         data-token-name={tokenFullName}
-                                        style={{ backgroundColor: bgColor, color: textColor }}
                                         onClick={() => handleCopy(bgColor, cssVar)}
                                     >
-                                        <span className="ftd-color-shade-label">{shadeName}</span>
-                                        <div className="ftd-shade-values">
-                                            <code className="ftd-shade-css-var">{cssVar}</code>
-                                            <code className="ftd-shade-hex">{bgColor}</code>
+                                        {/* Premium frosted tooltip */}
+                                        <div className="ftd-shade-tooltip">
+                                            <code className="ftd-tooltip-var">{cssVar}</code>
+                                            <code className="ftd-tooltip-hex">{bgColor}</code>
+                                        </div>
+
+                                        {/* Color fill — top portion of chip */}
+                                        <div className="ftd-shade-fill" style={{ backgroundColor: bgColor }} />
+                                        {/* White label area — bottom of chip */}
+                                        <div className="ftd-shade-chip">
+                                            <span className="ftd-color-shade-label">{shadeName}</span>
+                                            <code className="ftd-shade-hex">{shortHex}</code>
                                         </div>
                                     </div>
                                 );
@@ -418,3 +422,4 @@ function ColorFamiliesDisplay({
 }
 
 export default FoundationTab;
+

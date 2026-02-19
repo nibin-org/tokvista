@@ -416,6 +416,14 @@ body {
   margin-bottom: 24px;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--ftd-bg-main);
+  color: var(--ftd-text-main);
+  font-family: var(--ftd-font-sans);
+}
+
 /* Premium gradient section titles */
 .ftd-section-title {
   font-size: 1.5rem;
@@ -1547,47 +1555,60 @@ body {
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
+  border-left: 2px solid transparent;
   background: transparent;
   color: var(--ftd-text-sub);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   width: 100%;
 }
 
 .ftd-color-nav-link:hover {
   background: var(--ftd-bg-subtle);
   color: var(--ftd-text-main);
+  border-left-color: rgba(var(--ftd-primary-rgb), 0.3);
 }
 
 .ftd-color-nav-link.active {
-  background: rgba(var(--ftd-primary-rgb), 0.1);
+  background: rgba(var(--ftd-primary-rgb), 0.08);
   color: var(--ftd-primary);
-  font-weight: 600;
+  font-weight: 700;
+  border-left-color: var(--ftd-primary);
+  box-shadow: inset 0 0 0 1px rgba(var(--ftd-primary-rgb), 0.1);
 }
 
 .ftd-nav-icon {
   font-size: 1rem;
+  color: var(--ftd-text-muted);
+  transition: color 0.2s;
+}
+
+.ftd-color-nav-link.active .ftd-nav-icon {
+  color: var(--ftd-primary);
 }
 
 .ftd-nav-label {
   flex: 1;
+  letter-spacing: -0.01em;
 }
 
 .ftd-nav-count {
-  font-size: 0.75rem;
-  opacity: 0.6;
-  background: rgba(0, 0, 0, 0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.55;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 7px;
+  border-radius: 999px;
 }
 
 .ftd-color-nav-link.active .ftd-nav-count {
-  background: rgba(var(--ftd-primary-rgb), 0.2);
+  background: rgba(var(--ftd-primary-rgb), 0.15);
+  color: var(--ftd-primary);
   opacity: 1;
 }
 
@@ -1737,133 +1758,250 @@ body {
   font-weight: 600;
 }
 
-/* Color Family */
+/* ================================================
+   PREMIUM COLOR PALETTE — Paint Chip / Swatch Book
+   Physical paint-chip cards overlapping in a fan.
+   FIX: margin-right is NEVER animated — no layout
+   reflow, no flicker. Only transform + box-shadow.
+   ================================================ */
+
 .ftd-color-family-container {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   width: 100%;
-  min-width: 0;
 }
 
 .ftd-color-family {
-  margin-bottom: 0;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 16px;
+  background: var(--ftd-bg-subtle);
+  padding: 20px 24px;
+  border-radius: 20px;
+  border: 1px solid var(--ftd-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ftd-color-family:last-child {
-  margin-bottom: 0;
+.ftd-color-family:hover {
+  box-shadow: 0 8px 16px rgba(0,0,0,0.04);
 }
 
 .ftd-color-family-header {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  width: 100%;
 }
 
 .ftd-color-family-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-
-.ftd-color-family-name {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  text-transform: capitalize;
-}
-
-/* Color Shade Scale */
-.ftd-color-scale {
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.ftd-color-shade {
-  flex: 1;
-  min-width: 60px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  transition: background-color 0.2s;
-  cursor: pointer;
-  position: relative;
+  width: 52px;
+  height: 11px;
+  border-radius: 999px;
   box-shadow:
-    inset 0 0 0 1px var(--ftd-outline-soft),
-    0 0 0 1px rgba(255, 255, 255, 0.55),
-    0 6px 14px rgba(15, 23, 42, 0.06);
-}
-
-.ftd-color-shade:hover {
-  filter: brightness(0.97);
-  box-shadow:
-    inset 0 0 0 1px var(--ftd-outline-soft),
-    0 0 0 1px rgba(255, 255, 255, 0.7),
-    0 10px 22px rgba(15, 23, 42, 0.1);
-}
-
-[data-theme="dark"] .ftd-color-shade {
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.2),
-    0 0 0 1px rgba(148, 163, 184, 0.14),
-    0 10px 24px rgba(2, 6, 23, 0.45);
-}
-
-[data-theme="dark"] .ftd-color-shade:hover {
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.22),
-    0 0 0 1px rgba(148, 163, 184, 0.18),
-    0 14px 28px rgba(2, 6, 23, 0.55);
-}
-
-.ftd-color-shade-label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  min-width: 30px;
-}
-
-.ftd-shade-values {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  min-width: 0;
-}
-
-.ftd-shade-css-var,
-.ftd-shade-hex {
-  font-family: var(--ftd-font-mono);
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: default;
-  background: rgba(0, 0, 0, 0.1);
-  opacity: 0.7;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.ftd-shade-css-var {
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ftd-shade-hex {
+    0 1px 4px rgba(0,0,0,0.12),
+    0 0 0 1px rgba(0,0,0,0.06);
   flex-shrink: 0;
 }
 
-.ftd-color-shade-value {
-  font-family: var(--ftd-font-mono);
-  font-size: 0.6rem;
-  opacity: 0.9;
+.ftd-color-family-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  text-transform: capitalize;
+  color: var(--ftd-text-main);
+  letter-spacing: -0.025em;
 }
+
+/* Paint chip fan strip - full width */
+.ftd-color-scale {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  height: 168px;
+  width: 100%;
+  padding: 12px 0 0 0;
+  overflow: visible;
+}
+
+/* Individual paint chip card - fills row, capped at 120px */
+.ftd-color-shade {
+  flex: 1;
+  max-width: 120px;
+  min-width: 50px;
+  flex-shrink: 1;
+  height: 180px;
+  border-radius: 8px 8px 6px 6px;
+  margin-right: -10px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.28s ease;
+  box-shadow:
+    2px 2px 10px rgba(0,0,0,0.1),
+    0 0 0 1px rgba(0,0,0,0.06);
+  transform: perspective(1000px) translate3d(0, 0, 0.1px) rotate(0.01deg);
+  will-change: transform;
+}
+
+.ftd-color-shade:hover {
+  transform: perspective(1000px) translate3d(0, -20px, 1px) rotate(-1.5deg);
+  z-index: 50;
+  box-shadow:
+    -6px 6px 24px rgba(0,0,0,0.16),
+    6px 12px 32px rgba(0,0,0,0.12),
+    0 0 0 1px rgba(0,0,0,0.06);
+}
+
+/* ── Premium Frosted Tooltip ────────────────────── */
+.ftd-shade-tooltip {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 7px 12px;
+  border-radius: 10px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.ftd-color-shade:hover .ftd-shade-tooltip,
+.ftd-size-metric-chip:hover .ftd-shade-tooltip,
+.ftd-token-card:hover .ftd-shade-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ftd-tooltip-var {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.ftd-tooltip-hex {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Tooltip arrow */
+.ftd-shade-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(15, 23, 42, 0.94);
+}
+
+/* Color fill — top part */
+.ftd-shade-fill {
+  flex: 1;
+  min-height: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+/* White chip label — bottom part */
+.ftd-shade-chip {
+  flex-shrink: 0;
+  height: 42px;
+  background: #fff;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding: 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+/* Shade number (e.g., 50) - Balanced size */
+.ftd-color-shade-label {
+  font-family: var(--ftd-font-sans);
+  font-size: 0.84rem;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+}
+
+/* Hex value in chip (e.g., #f1f5f9) - Balanced size */
+.ftd-shade-hex {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.70rem;
+  color: #475569;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .ftd-color-family {
+  background: rgba(30, 41, 59, 0.3);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ftd-shade-chip {
+  background: #0f172a;
+  border-top-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .ftd-color-shade-label { color: #f1f5f9; }
+[data-theme="dark"] .ftd-shade-hex { color: #94a3b8; }
+
+[data-theme="dark"] .ftd-color-shade {
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .ftd-color-family-container {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .ftd-color-family {
+    gap: 8px;
+    padding: 12px;
+  }
+  .ftd-color-scale {
+    height: 110px;
+    padding: 8px 0 0 0;
+  }
+  .ftd-color-shade {
+    height: 116px;
+    margin-right: -8px;
+  }
+  .ftd-shade-chip { height: 30px; }
+  .ftd-color-shade-label { font-size: 0.65rem; }
+  .ftd-shade-hex { font-size: 0.45rem; }
+}
+
+
 
 /* Semantic Color Families (grouped) */
 .ftd-semantic-families {
@@ -1908,29 +2046,42 @@ body {
 }
 
 .ftd-token-card {
-  background: var(--ftd-bg-subtle);
+  background: var(--ftd-bg-card);
   border: 1px solid var(--ftd-border);
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 14px;
+  overflow: visible; /* To show tooltips */
+  position: relative;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .ftd-token-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--ftd-shadow-hover);
+  transform: translateY(-4px);
+  border-color: rgba(var(--ftd-primary-rgb), 0.25);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.08),
+    0 0 0 1px rgba(var(--ftd-primary-rgb), 0.12);
 }
 
 .ftd-token-swatch {
-  height: 64px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: height 0.2s ease;
+  position: relative; /* Anchor for tooltips */
+  border-radius: 14px 14px 0 0;
+}
+
+.ftd-token-card:hover .ftd-token-swatch {
+  height: 76px;
 }
 
 .ftd-token-info {
-  padding: 12px;
+  padding: 12px 14px;
   background: var(--ftd-bg-card);
+  border-top: 1px solid var(--ftd-border);
 }
 
 .ftd-token-name {
@@ -1957,18 +2108,37 @@ body {
   margin-top: 4px;
 }
 
+/* Alias link indicator — appears on hover only */
+.ftd-alias-indicator {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  line-height: 1;
+}
+
+.ftd-token-card:hover .ftd-alias-indicator {
+  opacity: 0.85;
+}
+
 .ftd-token-css-var,
 .ftd-token-hex {
   font-family: var(--ftd-font-mono);
-  font-size: 0.65rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: default;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: var(--ftd-bg-hover);
   color: var(--ftd-text-sub);
   word-break: break-all;
-  opacity: 0.8;
   cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.ftd-token-css-var:hover,
+.ftd-token-hex:hover {
+  background: rgba(var(--ftd-primary-rgb), 0.08);
+  color: var(--ftd-primary);
 }
 
 .ftd-copy-icon {
@@ -2124,18 +2294,21 @@ body {
 
 .ftd-token-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); /* Spacious 3-column gallery */
+  gap: 24px;
 }
 
 .ftd-display-card {
   background: var(--ftd-bg-card);
   border: 1px solid var(--ftd-border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 0;
   text-align: center;
-  overflow: hidden;
-  transition: all 0.2s;
+  overflow: visible; /* To show tooltips */
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer;
 }
 
 .ftd-display-card .ftd-token-card-label {
@@ -2148,21 +2321,24 @@ body {
 }
 
 .ftd-display-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--ftd-shadow-hover);
+  transform: translateY(-4px);
+  border-color: rgba(var(--ftd-primary-rgb), 0.25);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.08),
+    0 0 0 1px rgba(var(--ftd-primary-rgb), 0.12);
 }
 
 .ftd-token-preview-container {
-  height: 80px;
+  height: 100px;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
-  background: repeating-linear-gradient(45deg,
-      rgba(148, 163, 184, 0.08),
-      rgba(148, 163, 184, 0.08) 8px,
-      rgba(148, 163, 184, 0.02) 8px,
-      rgba(148, 163, 184, 0.02) 16px);
+  background:
+    radial-gradient(circle, rgba(var(--ftd-primary-rgb), 0.1) 1px, transparent 1px),
+    var(--ftd-bg-subtle);
+  background-size: 20px 20px, 100% 100%;
+  border-bottom: 1px solid var(--ftd-border);
 }
 
 .ftd-token-preview {
@@ -2171,6 +2347,204 @@ body {
   background: var(--ftd-primary);
   box-shadow: 0 4px 12px rgba(var(--ftd-primary-rgb), 0.2);
 }
+
+/* 📏 SIZING ARCHITECTURAL FAMILY — Unified Premium Aesthetic */
+.ftd-size-section-container {
+  width: 100%;
+}
+
+.ftd-size-family {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  background: var(--ftd-bg-subtle);
+  padding: 24px 32px;
+  border-radius: 20px;
+  border: 1px solid var(--ftd-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.ftd-size-metrics-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap; /* Match color palette wrapping logic */
+  align-items: flex-end;
+  gap: 8px 0; /* Add some vertical gap for wrapping */
+  padding: 0 20px 0 0; /* Extra top padding for tooltips */
+  overflow: visible; /* To show tooltips */
+}
+
+/* Individual Metric Chip (Matching Paint Chips) */
+.ftd-size-metric-chip {
+  width: 120px;
+  flex-shrink: 0;
+  height: 180px;
+  border-radius: 8px 8px 6px 6px;
+  margin-right: -18px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.28s ease;
+  box-shadow:
+    2px 2px 10px rgba(0,0,0,0.1),
+    0 0 0 1px rgba(0,0,0,0.06);
+  /* The 'Stable Composite' trick: tiny transform in base state prevents jump/blur on hover */
+  transform: perspective(1000px) translate3d(0, 0, 0.1px) rotate(0.01deg);
+  will-change: transform;
+}
+
+.ftd-size-metric-chip:hover {
+  transform: perspective(1000px) translate3d(0, -20px, 1px) rotate(-1.5deg); /* Lift and rotate only, NO scale */
+  z-index: 50;
+  box-shadow:
+    -6px 6px 24px rgba(0,0,0,0.16),
+    6px 12px 32px rgba(0,0,0,0.12),
+    0 0 0 1px rgba(0,0,0,0.06);
+}
+
+.ftd-size-metric-viz {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  overflow: visible; /* To show tooltips */
+}
+
+/* The technical growth gauge */
+.ftd-size-metric-gauge {
+  width: 100%;
+  background: linear-gradient(to top, var(--ftd-primary), #3b82f6);
+  border-radius: 2px 2px 0 0;
+  max-height: 54px; /* Caps vis but shows growth */
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.3);
+  transition: transform 0.4s ease;
+}
+
+/* Radius-specific visualization */
+.ftd-radius-metric-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 100px;
+}
+
+/* The Bounding Box guide */
+.ftd-radius-metric-container::before {
+  content: '';
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  aspect-ratio: 1 / 1;
+  border: 1px dashed rgba(var(--ftd-primary-rgb), 0.15);
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.ftd-radius-gauge {
+  width: 80px !important;
+  height: 80px !important;
+  max-height: none !important; /* Override generic gauge cap */
+  aspect-ratio: 1 / 1;
+  background: var(--ftd-primary) !important;
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  box-shadow: 0 4px 12px rgba(var(--ftd-primary-rgb), 0.2);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ftd-size-metric-chip:hover .ftd-radius-gauge {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(var(--ftd-primary-rgb), 0.3);
+}
+
+.ftd-size-metric-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 4px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 50%;
+}
+
+.ftd-size-metric-info {
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  border-radius: 0 0 6px 6px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Matching Color Palette Typography */
+.ftd-size-metric-info .ftd-color-shade-label {
+  font-family: var(--ftd-font-sans);
+  font-size: 0.72rem;
+  font-weight: 950; /* Ultra bold */
+  color: #0f172a;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.ftd-size-metric-info .ftd-shade-hex {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.58rem;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .ftd-size-family {
+  background: #0f172a;
+  border-color: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .ftd-size-metric-chip {
+  background: #1e293b;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .ftd-size-metric-viz {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .ftd-size-metric-info {
+  background: #1e293b;
+  border-top-color: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .ftd-spacing-metric-container,
+[data-theme="dark"] .ftd-radius-metric-container {
+  background: transparent;
+}
+
+[data-theme="dark"] .ftd-radius-gauge {
+  background: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .ftd-size-metric-info .ftd-color-shade-label { color: #f1f5f9; }
+[data-theme="dark"] .ftd-size-metric-info .ftd-shade-hex { color: #94a3b8; }
 
 .ftd-token-card-label {
   font-size: 0.95rem;
@@ -2255,22 +2629,21 @@ body {
   gap: 16px;
 }
 
-/* Responsive */
-@media (max-width: 1360px) {
-  .ftd-color-family-container {
-    grid-template-columns: repeat(3, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 960px) {
-  .ftd-color-family-container {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .ftd-color-family-container {
+/* Responsive — color palette row layout */
+@media (max-width: 700px) {
+  .ftd-color-family {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .ftd-color-family-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ftd-color-scale {
+    height: 56px;
   }
 }
 
@@ -2281,14 +2654,6 @@ body {
 
   .ftd-variants-grid {
     grid-template-columns: 1fr;
-  }
-
-  .ftd-color-scale {
-    flex-wrap: wrap;
-  }
-
-  .ftd-color-shade {
-    min-width: 80px;
   }
 
   .ftd-variant-card {
@@ -3516,18 +3881,20 @@ body {
 
 .ftd-playground-canvas {
   width: 100%;
-  background: repeating-linear-gradient(45deg,
-      rgba(148, 163, 184, 0.08),
-      rgba(148, 163, 184, 0.08) 12px,
-      rgba(148, 163, 184, 0.02) 12px,
-      rgba(148, 163, 184, 0.02) 24px);
+  /* Premium dot-grid background */
+  background:
+    radial-gradient(circle, rgba(var(--ftd-primary-rgb), 0.12) 1px, transparent 1px),
+    radial-gradient(1000px 600px at 50% 50%, rgba(var(--ftd-primary-rgb), 0.04) 0%, transparent 80%),
+    var(--ftd-bg-subtle);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
   border: 1px solid var(--ftd-border);
-  border-radius: 12px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px;
   position: relative;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.03);
 }
 
 .ftd-playground-code {

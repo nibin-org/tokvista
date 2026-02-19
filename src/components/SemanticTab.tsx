@@ -259,7 +259,7 @@ function SemanticColorGroups({
                                         onClick={() => onCopy(color)}
                                     >
                                         <div className="ftd-token-swatch" style={{ backgroundColor: bgColor, color: textColor }}>
-                                            {isAlias && <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>Alias</span>}
+                                            {isAlias && <span className="ftd-alias-indicator">↗</span>}
                                         </div>
                                         <div className="ftd-token-info">
                                             <p className="ftd-token-name">{color.name}</p>

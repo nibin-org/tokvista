@@ -133,6 +133,13 @@ export function ColorDisplay({
                                                 }}
                                             >
                                                 <span className="ftd-color-shade-label">{shade.shade}</span>
+
+                                                {/* Premium Frosted Tooltip */}
+                                                <div className="ftd-shade-tooltip">
+                                                    <span className="ftd-tooltip-var">{shade.cssVariable}</span>
+                                                    <span className="ftd-tooltip-hex">{shade.resolvedValue || shade.value}</span>
+                                                </div>
+
                                                 <div className="ftd-shade-values">
                                                     <span className="ftd-shade-css-var" onClick={() => copyToClipboard(shade.cssVariable).then(() => showToast(shade.cssVariable))}>
                                                         {shade.cssVariable}
@@ -205,6 +212,12 @@ function ColorCard({ color, onCopy, onCopyText }: { color: ParsedColorToken; onC
         <div className="ftd-token-card" data-token-name={color.name} data-token-css-var={color.cssVariable}>
             <div className="ftd-token-swatch" style={{ backgroundColor: bgColor, color: textColor }}>
                 {isAlias && <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>Alias</span>}
+
+                {/* Premium Frosted Tooltip */}
+                <div className="ftd-shade-tooltip">
+                    <span className="ftd-tooltip-var">{color.cssVariable}</span>
+                    <span className="ftd-tooltip-hex">{bgColor}</span>
+                </div>
             </div>
             <div className="ftd-token-info">
                 <p className="ftd-token-name">{color.name}</p>

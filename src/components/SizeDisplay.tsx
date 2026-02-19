@@ -22,9 +22,10 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     }, []);
 
     const handleCopy = useCallback(async (token: ParsedSizeToken) => {
-        const success = await copyToClipboard(token.value);
+        const varValue = `var(${token.cssVariable})`;
+        const success = await copyToClipboard(varValue);
         if (success) {
-            showToast(token.value);
+            showToast(varValue);
         }
         onTokenClick?.(token);
     }, [onTokenClick, showToast]);
@@ -40,47 +41,48 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     }
 
     return (
-            <div className="ftd-section">
-                <div className="ftd-section-header">
-                    <div className="ftd-section-icon"><Icon name="sizes" /></div>
+        <div className="ftd-section">
+            <div className="ftd-section-header">
+                <div className="ftd-section-icon"><Icon name="sizes" /></div>
                 <h2 className="ftd-section-title">Size Scale</h2>
                 <span className="ftd-section-count">{sizeTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-token-grid">
-                {sizeTokens.map((token) => {
-                    const varValue = `var(${token.cssVariable})`;
-                    return (
-                        <div
-                            key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={token.name}
-                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
-                                <div
-                                    className="ftd-token-preview"
-                                    style={{
-                                        width: token.value,
-                                        height: token.value,
-                                        borderRadius: '2px', // Slight rounding for style
-                                        backgroundColor: 'var(--ftd-primary)'
-                                    }}
-                                />
+            <div className="ftd-size-family">
+                <div className="ftd-size-metrics-grid">
+                    {sizeTokens.map((token) => {
+                        const varValue = `var(${token.cssVariable})`;
+                        return (
+                            <div
+                                key={token.name}
+                                className="ftd-size-metric-chip"
+                                onClick={() => handleCopy(token)}
+                            >
+                                <div className="ftd-size-metric-viz">
+                                    {/* The "Gauge" visualizing height growth */}
+                                    <div
+                                        className="ftd-size-metric-gauge"
+                                        style={{ height: token.value }}
+                                    />
+
+                                    {/* Small technical dimension dot */}
+                                    <div className="ftd-size-metric-dot" />
+
+                                    {/* Premium Frosted Tooltip */}
+                                    <div className="ftd-shade-tooltip">
+                                        <span className="ftd-tooltip-var">{token.cssVariable}</span>
+                                        <span className="ftd-tooltip-hex">{token.value}</span>
+                                    </div>
+                                </div>
+
+                                <div className="ftd-size-metric-info">
+                                    <span className="ftd-color-shade-label">{token.name}</span>
+                                    <span className="ftd-shade-hex">{token.value}</span>
+                                </div>
                             </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span className="ftd-token-css-var">
-                                    {token.cssVariable}
-                                </span>
-                                <span className="ftd-token-hex">
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Premium Copy Toast */}

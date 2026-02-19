@@ -20,9 +20,10 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
     }, []);
 
     const handleCopy = useCallback(async (token: ParsedRadiusToken) => {
-        const success = await copyToClipboard(token.value);
+        const varValue = `var(${token.cssVariable})`;
+        const success = await copyToClipboard(varValue);
         if (success) {
-            showToast(token.value);
+            showToast(varValue);
         }
         onTokenClick?.(token);
     }, [onTokenClick, showToast]);
@@ -45,35 +46,42 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
                 <span className="ftd-section-count">{radiusTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-token-grid">
-                {radiusTokens.map((token) => {
-                    const varValue = `var(${token.cssVariable})`;
-                    return (
-                        <div
-                            key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={token.name}
-                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
-                                <div
-                                    className="ftd-token-preview"
-                                    style={{ borderRadius: token.value }}
-                                />
+            <div className="ftd-size-family">
+                <div className="ftd-size-metrics-grid">
+                    {radiusTokens.map((token) => {
+                        return (
+                            <div
+                                key={token.name}
+                                className="ftd-size-metric-chip"
+                                onClick={() => handleCopy(token)}
+                            >
+                                <div className="ftd-size-metric-viz">
+                                    {/* The Corner visualization showing border radius */}
+                                    <div className="ftd-radius-metric-container">
+                                        <div
+                                            className="ftd-size-metric-gauge ftd-radius-gauge"
+                                            style={{ borderRadius: token.value }}
+                                        />
+                                    </div>
+
+                                    {/* Small technical dimension dot */}
+                                    <div className="ftd-size-metric-dot" />
+
+                                    {/* Premium Frosted Tooltip */}
+                                    <div className="ftd-shade-tooltip">
+                                        <span className="ftd-tooltip-var">{token.cssVariable}</span>
+                                        <span className="ftd-tooltip-hex">{token.value}</span>
+                                    </div>
+                                </div>
+
+                                <div className="ftd-size-metric-info">
+                                    <span className="ftd-color-shade-label">{token.name}</span>
+                                    <span className="ftd-shade-hex">{token.value}</span>
+                                </div>
                             </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span className="ftd-token-css-var">
-                                    {token.cssVariable}
-                                </span>
-                                <span className="ftd-token-hex">
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Premium Copy Toast */}
