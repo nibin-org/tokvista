@@ -7,6 +7,7 @@ Thank you for your interest in contributing! 🎉
 ```bash
 git clone https://github.com/nibin-org/tokvista.git
 cd tokvista
+source ~/.nvm/nvm.sh && nvm use 20
 npm install
 npm run dev
 ```
@@ -16,14 +17,21 @@ npm run dev
 - `npm run build` - Build the package
 - `npm run dev` - Build in watch mode
 - `npm run typecheck` - Type checking
-- `npm run lint` - Lint code
+- `npm test` - Run tests
+
+## CLI Smoke Test
+
+```bash
+npm run build
+node dist/bin/tokvista.js ./tokens.json --no-open --port 4000
+```
 
 ## Pull Request Process
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
-4. Run tests: `npm run typecheck && npm run lint`
+4. Run checks: `npm run typecheck && npm test && npm run build`
 5. Commit: `git commit -m 'Add amazing feature'`
 6. Push: `git push origin feature/amazing-feature`
 7. Open a Pull Request

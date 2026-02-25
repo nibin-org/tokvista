@@ -301,9 +301,25 @@ You should see:
 
 ---
 
-## 4. Using in Your Project
+## 4. Using Your Tokens
 
-Once `tokens.json` is in your repo, usage is simple:
+Once `tokens.json` is in your repo, you can use Tokvista in two ways.
+
+### Option A: Zero-Setup CLI
+
+Run directly from any folder containing a tokens file:
+
+```bash
+npx tokvista tokens.json
+```
+
+Optional flags:
+
+```bash
+npx tokvista tokens.json --port 4000 --no-open
+```
+
+### Option B: React / Next.js Component
 
 ```tsx
 // src/app/page.tsx
@@ -311,7 +327,7 @@ import { TokenDocumentation } from 'tokvista';
 import 'tokvista/styles.css';
 
 // Import the JSON file synced from Figma
-import tokens from '../tokens.json'; 
+import tokens from '../tokens.json';
 
 export default function DesignSystem() {
   return <TokenDocumentation tokens={tokens} />;
@@ -321,9 +337,8 @@ export default function DesignSystem() {
 **What happens next:**
 
 1. Your `tokens.json` file is now in your repository
-2. Import it into your React/Next.js application
-3. Pass it to the `TokenDocumentation` component
-4. The component will automatically visualize your Foundation, Semantic, and Component tokens
+2. Choose CLI (`npx tokvista tokens.json`) for instant docs, or React component integration
+3. Tokvista visualizes your Foundation, Semantic, and Component tokens
 
 ---
 
@@ -387,4 +402,4 @@ Your Figma design tokens are now:
 - Share this guide with your design team
 - Create your first set of tokens following the 3-layer structure
 - Test the sync by pushing changes to GitHub
-- Integrate the `TokenDocumentation` component in your app
+- Run `npx tokvista tokens.json` for instant docs, or integrate `TokenDocumentation` in your app

@@ -26,19 +26,13 @@ Design token documentation is often static and hard to scan. **Tokvista** gives 
 - Semantic + component token views with aliases resolved
 - Built-in dark mode
 - Interactive playground for previews
-- No runtime dependencies (React only)
+- Two usage modes: zero-setup CLI and React component library
 
 ---
 
 ## Quick Start
 
-### Install
-
-```bash
-npm install tokvista
-```
-
-### Run as CLI (No React Setup)
+### Option A: CLI (No React Setup)
 
 ```bash
 npx tokvista tokens.json
@@ -50,7 +44,11 @@ Optional flags:
 npx tokvista ./tokens.json --port 4000 --no-open
 ```
 
-### Use
+### Option B: React Component Library
+
+```bash
+npm install tokvista
+```
 
 ```tsx
 import { TokenDocumentation } from 'tokvista';
@@ -61,6 +59,13 @@ export default function DesignSystem() {
   return <TokenDocumentation tokens={tokens} />;
 }
 ```
+
+### CLI Options
+
+- `tokvista [tokens.json]` - Token file path (default: `./tokens.json`)
+- `--port` / `-p` - Preferred port (default: `3000`)
+- `--no-open` - Do not auto-open browser
+- `--help` / `-h` - Show help
 
 ---
 
@@ -191,10 +196,11 @@ Each accepts `tokens` and optional `title`.
 
 ## Production Ready
 
+- Standalone CLI via `npx tokvista tokens.json`
 - ESM and CJS builds
 - Typed exports
 - CSS delivered as a single file
-- No runtime dependencies besides React
+- React support via `TokenDocumentation` component
 - Compatible with modern React and Next.js
 
 ---
@@ -205,6 +211,7 @@ Each accepts `tokens` and optional `title`.
 # root package
 npm install
 npm run build
+node dist/bin/tokvista.js ../tokens.json --port 4000
 
 # demo app
 cd demo
@@ -212,7 +219,7 @@ npm install
 npm run dev
 ```
 
-Demo will run at `http://localhost:3000`.
+CLI defaults to `http://localhost:3000` and demo runs at `http://localhost:3000`, so use a custom CLI port (for example `4000`) when running both.
 
 ---
 

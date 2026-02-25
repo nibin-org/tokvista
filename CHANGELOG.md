@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fonts: Default Google Fonts loading is now optional via `loadDefaultFonts`; users can pass `fontFamilySans` / `fontFamilyMono` to match their app fonts.
 - Demo: Updated to show how to load and pass custom fonts.
 
+### Planned
+- Animation tokens support
+- Typography tokens visualization
+- Shadow tokens display
+- Export functionality (CSS, SCSS, JSON)
+- Storybook integration examples
+- Accessibility improvements (ARIA labels, keyboard navigation)
+
+## [1.3.0] - 2026-02-25
+
+### Added
+- Standalone CLI entrypoint exposed as `tokvista` binary.
+- Zero-setup run flow: `npx tokvista tokens.json`.
+- Built-in local server that serves a self-contained HTML app.
+- Automatic browser launch on startup with `--no-open` opt-out.
+- CLI flags: `--port`/`-p`, `--no-open`, `--help`/`-h`.
+- Bundled browser runtime for CLI so no React project setup is required.
+
+### Changed
+- Build pipeline now emits:
+  - `dist/bin/tokvista.js` (Node CLI binary)
+  - `dist/cli/browser.js` (browser app bundle used by CLI)
+- Postbuild now sets executable permissions on the CLI binary.
+- README and usage docs updated for CLI + React dual usage.
+
 ## [1.0.1] - 2026-02-16
 
 ### Changed
@@ -252,13 +277,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zero-config setup - just pass tokens.json
 - Next.js compatibility with transpilePackages
 - Individual component exports for custom layouts
-
-## [Unreleased]
-
-### Planned
-- Animation tokens support
-- Typography tokens visualization
-- Shadow tokens display
-- Export functionality (CSS, SCSS, JSON)
-- Storybook integration examples
-- Accessibility improvements (ARIA labels, keyboard navigation)
