@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fonts: Default Google Fonts loading is now optional via `loadDefaultFonts`; users can pass `fontFamilySans` / `fontFamilyMono` to match their app fonts.
 - Demo: Updated to show how to load and pass custom fonts.
+- Root `npm run dev` now runs postbuild on each successful watch rebuild, so `dist/styles.css` stays in sync for local-linked consumers.
+- Demo `basePath`/`assetPrefix` are now enabled only for production builds (`/tokvista`), while local dev uses root paths.
+
+### Fixed
+- CLI shutdown now exits reliably on `Ctrl+C`/`SIGTERM` by closing active connections and forcing socket cleanup on timeout.
+- CLI browser auto-open now handles async spawn failures correctly (for example, missing `xdg-open`) and falls back with a clear warning.
+- Search modal debounced search effect now skips updates while closed, eliminating React `act(...)` warning noise in tests.
 
 ### Planned
 - Animation tokens support

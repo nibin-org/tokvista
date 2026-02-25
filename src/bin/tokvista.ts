@@ -2,11 +2,13 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 25;
+const SHUTDOWN_TIMEOUT_MS = 1500;
 
 interface CliOptions {
   tokenFile: string;
@@ -245,6 +247,16 @@ async function main() {
 
     const html = buildHtml(tokens, css, appBundle);
     const { server, port } = await startServer(html, options.port);
+    const openSockets = new Set<Socket>();
+    let isShuttingDown = false;
+
+    server.on('connection', (socket) => {
+      openSockets.add(socket);
+      socket.on('close', () => {
+        openSockets.delete(socket);
+      });
+    });
+
     const url = `http://localhost:${port}`;
 
     console.log(`TokVista running at ${url}`);
@@ -262,14 +274,30 @@ async function main() {
       console.log('Browser auto-open disabled (--no-open).');
     }
 
-    const shutdown = () => {
+    const shutdown = (signal: NodeJS.Signals) => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+
+      console.log(`\nReceived ${signal}, shutting down TokVista...`);
+      const timeout = setTimeout(() => {
+        for (const socket of openSockets) {
+          socket.destroy();
+        }
+        process.exit(0);
+      }, SHUTDOWN_TIMEOUT_MS);
+      timeout.unref();
+
+      // Available in modern Node.js; closes keep-alive sockets immediately.
+      (server as unknown as { closeAllConnections?: () => void }).closeAllConnections?.();
+
       server.close(() => {
+        clearTimeout(timeout);
         process.exit(0);
       });
     };
 
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
   } catch (error) {
     console.error((error as Error).message);
     process.exit(1);

@@ -66,15 +66,8 @@ export default function DesignSystem() {
 - `--port` / `-p` - Preferred port (default: `3000`)
 - `--no-open` - Do not auto-open browser
 - `--help` / `-h` - Show help
+- `Ctrl+C` - Stop the local server
 
----
-
-## Migration from @nibin-org/tokens
-
-```bash
-npm uninstall @nibin-org/tokens
-npm install tokvista
-```
 
 ---
 
@@ -219,7 +212,8 @@ npm install
 npm run dev
 ```
 
-CLI defaults to `http://localhost:3000` and demo runs at `http://localhost:3000`, so use a custom CLI port (for example `4000`) when running both.
+CLI defaults to `http://localhost:3000` and demo dev runs at `http://localhost:3000/`, so use a custom CLI port (for example `4000`) when running both.
+Note: production demo is served under `/tokvista/`.
 
 ---
 
