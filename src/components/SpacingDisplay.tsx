@@ -7,6 +7,14 @@ import { parseSpacingTokens } from '../utils/dimension';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
+type TokenCopyFormat = 'css' | 'scss' | 'tailwind';
+
+function getSpacingCopyValue(cssVar: string, format: TokenCopyFormat) {
+    if (format === 'css') return `var(${cssVar})`;
+    if (format === 'scss') return `$${cssVar.replace(/^--/, '')}`;
+    return `p-[var(${cssVar})]`;
+}
+
 /**
  * SpacingDisplay - Visual representation of spacing tokens
  * Shows horizontal bars with proportional widths
@@ -17,6 +25,7 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     const toastTimerRef = useRef<number | null>(null);
 
     const spacingTokens = parseSpacingTokens(tokens);
+    const maxSpacingValue = spacingTokens.reduce((max, token) => Math.max(max, token.numericValue), 0);
 
     const showToast = useCallback((value: string) => {
         const id = ++toastIdRef.current;
@@ -53,59 +62,85 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     }
 
     return (
-        <div className="ftd-section">
-            <div className="ftd-section-header">
-                <div className="ftd-section-icon"><Icon name="spacing" /></div>
+        <div className="ftd-section ftd-spacing-scale-section">
+            <div className="ftd-foundation-intro">
                 <h2 className="ftd-section-title">Spacing Scale</h2>
-                <span className="ftd-section-count">{spacingTokens.length} tokens</span>
+                <p className="ftd-foundation-subtitle">
+                    {spacingTokens.length}
+                    {' '}
+                    tokens
+                    {' '}
+                    &#183;
+                    {' '}
+                    base-4 scale. Click a CSS, SCSS, or Tailwind value to copy.
+                </p>
             </div>
 
-            <div className="ftd-token-grid">
-                {spacingTokens.map((token) => {
-                    const varValue = `var(${token.cssVariable})`;
+            <div className="ftd-spacing-scale-table-wrap">
+                <p className="ftd-spacing-scale-table-title">Tokens</p>
+                <div className="ftd-spacing-scale-table">
+                    <div className="ftd-spacing-scale-table-head">
+                        <span>Token</span>
+                        <span>Value</span>
+                        <span>Scale</span>
+                        <span>CSS</span>
+                        <span className="ftd-foundation-col-scss">SCSS</span>
+                        <span className="ftd-foundation-col-tailwind">Tailwind</span>
+                    </div>
+                    <div className="ftd-spacing-scale-table-body">
+                        {spacingTokens.map((token) => {
+                            const cssCopy = getSpacingCopyValue(token.cssVariable, 'css');
+                            const scssCopy = getSpacingCopyValue(token.cssVariable, 'scss');
+                            const tailwindCopy = getSpacingCopyValue(token.cssVariable, 'tailwind');
+                            const widthPercent = maxSpacingValue > 0 ? (token.numericValue / maxSpacingValue) * 100 : 0;
+                            const barWidth = token.numericValue <= 0 ? 1 : Math.max(widthPercent, 2);
 
-                    return (
-                        <div
-                            key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={token.name}
-                            onClick={() => void handleCopy(varValue, token)}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
+                            return (
                                 <div
-                                    className="ftd-token-preview"
-                                    style={{
-                                        width: token.value,
-                                        height: '8px',
-                                        borderRadius: '2px',
-                                    }}
-                                />
-                            </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.cssVariable, token);
-                                    }}
+                                    key={token.cssVariable}
+                                    className="ftd-spacing-scale-row"
+                                    data-token-name={token.name}
+                                    data-token-css-var={token.cssVariable}
                                 >
-                                    {token.cssVariable}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.value, token);
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
+                                    <code className="ftd-spacing-scale-token">{token.cssVariable}</code>
+                                    <code className="ftd-spacing-scale-value">{token.value}</code>
+                                    <span className="ftd-spacing-scale-bar-track" aria-hidden="true">
+                                        <span
+                                            className="ftd-spacing-scale-bar"
+                                            style={{
+                                                width: `${barWidth}%`,
+                                            }}
+                                        />
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell"
+                                        onClick={() => void handleCopy(cssCopy, token)}
+                                        title={`Copy CSS: ${cssCopy}`}
+                                    >
+                                        {cssCopy}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell ftd-foundation-col-scss"
+                                        onClick={() => void handleCopy(scssCopy, token)}
+                                        title={`Copy SCSS: ${scssCopy}`}
+                                    >
+                                        {scssCopy}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell ftd-foundation-col-tailwind"
+                                        onClick={() => void handleCopy(tailwindCopy, token)}
+                                        title={`Copy Tailwind: ${tailwindCopy}`}
+                                    >
+                                        {tailwindCopy}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             {/* Premium Copy Toast */}

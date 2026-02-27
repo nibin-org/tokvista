@@ -37,8 +37,9 @@ export function TokenDocumentation({
     loadDefaultFonts = true,
     onTokenClick,
 }: TokenDocumentationProps) {
+    const initialTab = defaultTab === 'playground' ? 'foundation' : (defaultTab as TabType) || 'foundation';
     // State
-    const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab);
     const [isMounted, setIsMounted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<{ id: number; value: string } | null>(null);
@@ -114,7 +115,7 @@ export function TokenDocumentation({
             try {
                 // Restore Active Tab
                 const savedTab = localStorage.getItem('ftd-active-tab');
-                if (savedTab && ['foundation', 'semantic', 'components', 'playground'].includes(savedTab)) {
+                if (savedTab && ['foundation', 'semantic', 'components'].includes(savedTab)) {
                     setActiveTab(savedTab as TabType);
                 }
             } catch {
@@ -277,7 +278,7 @@ export function TokenDocumentation({
                     if (!text) continue;
                     if (text === targetCssVar) {
                         const candidate = (node as HTMLElement).closest(
-                            '.ftd-color-shade, .ftd-token-card, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-dimension-item, .ftd-display-card'
+                            '.ftd-color-shade, .ftd-foundation-row, .ftd-spacing-scale-row, .ftd-size-scale-row, .ftd-radius-scale-row, .ftd-typography-row, .ftd-semantic-row, .ftd-token-card, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-dimension-item, .ftd-display-card'
                         ) as HTMLElement | null;
                         if (candidate) {
                             tokenElement = candidate;
@@ -289,7 +290,7 @@ export function TokenDocumentation({
 
             // If not found by data attribute, try finding by text content
             if (!tokenElement) {
-                const allElements = document.querySelectorAll('.ftd-color-shade, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-token-card, .ftd-search-result-item');
+                const allElements = document.querySelectorAll('.ftd-color-shade, .ftd-foundation-row, .ftd-spacing-scale-row, .ftd-size-scale-row, .ftd-radius-scale-row, .ftd-typography-row, .ftd-semantic-row, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-token-card, .ftd-search-result-item');
                 for (const el of Array.from(allElements)) {
                     if (el.textContent?.includes(tokenName)) {
                         tokenElement = el as HTMLElement;
@@ -430,7 +431,7 @@ export function TokenDocumentation({
 
     // --- Determine which tabs to show ---
     const availableTabs = useMemo(() => {
-        const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode }> = [];
+        const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode; disabled?: boolean; tooltip?: string }> = [];
 
         if (Object.keys(foundationTokens).length > 0) {
             tabs.push({ id: 'foundation', label: 'Foundation', icon: <Icon name="foundation" /> });
@@ -444,11 +445,26 @@ export function TokenDocumentation({
             tabs.push({ id: 'components', label: 'Official Specs', icon: <Icon name="components" /> });
         }
 
-        // Always add Playground
-        tabs.push({ id: 'playground', label: 'Interactive Sandbox', icon: <Icon name="playground" /> });
+        // Keep Playground visible but locked for now
+        tabs.push({
+            id: 'playground',
+            label: 'Interactive Sandbox',
+            icon: <Icon name="playground" />,
+            disabled: true,
+            tooltip: 'Coming soon'
+        });
 
         return tabs;
     }, [foundationTokens, semanticTokens, componentTokens]);
+
+    useEffect(() => {
+        const firstEnabledTab = availableTabs.find(tab => !tab.disabled)?.id;
+        if (!firstEnabledTab) return;
+        const current = availableTabs.find(tab => tab.id === activeTab);
+        if (!current || current.disabled) {
+            setActiveTab(firstEnabledTab);
+        }
+    }, [availableTabs, activeTab]);
 
     // --- Component Processing (Dynamic Variants) ---
     const mergedComponents = useMemo(() => {
@@ -686,11 +702,22 @@ export function TokenDocumentation({
                             <button
                                 type="button"
                                 key={tab.id}
-                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''}`}
-                                onClick={() => setActiveTab(tab.id)}
+                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'is-disabled' : ''}`}
+                                onClick={() => {
+                                    if (!tab.disabled) setActiveTab(tab.id);
+                                }}
+                                disabled={tab.disabled}
+                                aria-disabled={tab.disabled || undefined}
+                                title={tab.disabled ? tab.tooltip : undefined}
                             >
                                 <span style={{ marginRight: '8px' }}>{tab.icon}</span>
                                 {tab.label}
+                                {tab.disabled && (
+                                    <>
+                                        <span className="ftd-tab-lock-icon"><Icon name="lock" size={12} /></span>
+                                        <span className="ftd-tab-coming-soon">Coming soon</span>
+                                    </>
+                                )}
                             </button>
                         ))}
                     </nav>
@@ -703,6 +730,7 @@ export function TokenDocumentation({
                         tokens={foundationTokens}
                         tokenMap={tokenMap}
                         onTokenClick={onTokenClick}
+                        onNavigateTab={(tab) => setActiveTab(tab)}
                     />
                 )}
 

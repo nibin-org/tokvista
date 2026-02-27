@@ -7,6 +7,14 @@ import { parseRadiusTokens } from '../utils/dimension';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
+type TokenCopyFormat = 'css' | 'scss' | 'tailwind';
+
+function getRadiusCopyValue(cssVar: string, format: TokenCopyFormat) {
+    if (format === 'css') return `var(${cssVar})`;
+    if (format === 'scss') return `$${cssVar.replace(/^--/, '')}`;
+    return `rounded-[var(${cssVar})]`;
+}
+
 /**
  * RadiusDisplay - Visual demonstration of border radius tokens
  * Shows boxes with actual border radius applied
@@ -53,54 +61,78 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
     }
 
     return (
-        <div className="ftd-section">
-            <div className="ftd-section-header">
-                <div className="ftd-section-icon"><Icon name="radius" /></div>
+        <div className="ftd-section ftd-radius-scale-section">
+            <div className="ftd-foundation-intro">
                 <h2 className="ftd-section-title">Border Radius</h2>
-                <span className="ftd-section-count">{radiusTokens.length} tokens</span>
+                <p className="ftd-foundation-subtitle">
+                    {radiusTokens.length}
+                    {' '}
+                    tokens. Click a CSS, SCSS, or Tailwind value to copy.
+                </p>
             </div>
 
-            <div className="ftd-token-grid">
-                {radiusTokens.map((token) => {
-                    const varValue = `var(${token.cssVariable})`;
-                    return (
-                        <div
-                            key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={token.name}
-                            onClick={() => void handleCopy(varValue, token)}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
+            <div className="ftd-radius-scale-table-wrap">
+                <p className="ftd-radius-scale-table-title">Tokens</p>
+                <div className="ftd-radius-scale-table">
+                    <div className="ftd-radius-scale-table-head">
+                        <span>Token</span>
+                        <span>Value</span>
+                        <span>Preview</span>
+                        <span>CSS</span>
+                        <span className="ftd-foundation-col-scss">SCSS</span>
+                        <span className="ftd-foundation-col-tailwind">Tailwind</span>
+                    </div>
+                    <div className="ftd-radius-scale-table-body">
+                        {radiusTokens.map((token) => {
+                            const cssCopy = getRadiusCopyValue(token.cssVariable, 'css');
+                            const scssCopy = getRadiusCopyValue(token.cssVariable, 'scss');
+                            const tailwindCopy = getRadiusCopyValue(token.cssVariable, 'tailwind');
+
+                            return (
                                 <div
-                                    className="ftd-token-preview"
-                                    style={{ borderRadius: token.value }}
-                                />
-                            </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.cssVariable, token);
-                                    }}
+                                    key={token.cssVariable}
+                                    className="ftd-radius-scale-row"
+                                    data-token-name={token.name}
+                                    data-token-css-var={token.cssVariable}
                                 >
-                                    {token.cssVariable}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.value, token);
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
+                                    <code className="ftd-radius-scale-token">{token.cssVariable}</code>
+                                    <code className="ftd-radius-scale-value">{token.value}</code>
+                                    <div className="ftd-radius-scale-preview-cell">
+                                        <span
+                                            className="ftd-radius-scale-corner"
+                                            style={{ borderTopLeftRadius: token.value }}
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell"
+                                        onClick={() => void handleCopy(cssCopy, token)}
+                                        title={`Copy CSS: ${cssCopy}`}
+                                    >
+                                        {cssCopy}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell ftd-foundation-col-scss"
+                                        onClick={() => void handleCopy(scssCopy, token)}
+                                        title={`Copy SCSS: ${scssCopy}`}
+                                    >
+                                        {scssCopy}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ftd-foundation-copy-cell ftd-foundation-col-tailwind"
+                                        onClick={() => void handleCopy(tailwindCopy, token)}
+                                        title={`Copy Tailwind: ${tailwindCopy}`}
+                                    >
+                                        {tailwindCopy}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             {/* Premium Copy Toast */}

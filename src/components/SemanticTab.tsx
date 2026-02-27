@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens, ParsedColorToken } from '../types';
-import { parseSemanticColors, getContrastColor } from '../utils/color';
+import { parseSemanticColors } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
@@ -24,8 +24,6 @@ interface Section {
  * SemanticTab - Displays semantic color tokens with scroll-spy navigation
  */
 export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps) {
-    const rafId = useRef<number | null>(null);
-    const pendingSectionId = useRef<string | null>(null);
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
     const toastIdRef = useRef(0);
@@ -67,85 +65,9 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
         }
     }, [sections, activeSection]);
 
-    // Scroll Spy (deterministic by scroll position)
-    useEffect(() => {
-        const getOffset = () => {
-            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
-            const base = sticky ? sticky.getBoundingClientRect().height : 160;
-            const offset = Math.round(base + 16);
-            document.documentElement.style.setProperty('--ftd-sticky-offset', `${offset}px`);
-            return offset;
-        };
-
-        const updateActive = () => {
-            const sectionElements = Array.from(document.querySelectorAll('.ftd-semantic-section')) as HTMLElement[];
-            if (sectionElements.length === 0) return;
-
-            const offset = getOffset();
-            if (pendingSectionId.current) {
-                const target = document.getElementById(pendingSectionId.current);
-                if (!target) {
-                    pendingSectionId.current = null;
-                } else {
-                    const top = target.getBoundingClientRect().top;
-                    if (top - offset > 0) {
-                        setActiveSection(pendingSectionId.current);
-                        return;
-                    }
-                    pendingSectionId.current = null;
-                }
-            }
-            const viewportTop = offset;
-            const viewportBottom = window.innerHeight;
-            let bestId = sectionElements[0].id;
-            let bestVisible = -1;
-            let bestTop = Infinity;
-
-            for (const el of sectionElements) {
-                const rect = el.getBoundingClientRect();
-                const visibleTop = Math.max(rect.top, viewportTop);
-                const visibleBottom = Math.min(rect.bottom, viewportBottom);
-                const visible = Math.max(0, visibleBottom - visibleTop);
-                if (visible > bestVisible || (visible === bestVisible && rect.top < bestTop)) {
-                    bestVisible = visible;
-                    bestId = el.id;
-                    bestTop = rect.top;
-                }
-            }
-            setActiveSection(bestId);
-        };
-
-        const onScroll = () => {
-            if (rafId.current !== null) return;
-            rafId.current = window.requestAnimationFrame(() => {
-                rafId.current = null;
-                updateActive();
-            });
-        };
-
-        updateActive();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onScroll);
-        return () => {
-            window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', onScroll);
-            if (rafId.current !== null) {
-                window.cancelAnimationFrame(rafId.current);
-                rafId.current = null;
-            }
-        };
-    }, [sections]);
-
-    const scrollToSection = (id: string) => {
-        const element = document.getElementById(id);
-        if (element) {
-            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
-            const offset = (sticky ? sticky.getBoundingClientRect().height : 160) + 16;
-            const top = window.scrollY + element.getBoundingClientRect().top - offset;
-            setActiveSection(id);
-            pendingSectionId.current = id;
-            window.scrollTo({ top, behavior: 'smooth' });
-        }
+    const selectSection = (id: string) => {
+        setActiveSection(id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const showToast = (value: string) => {
@@ -184,7 +106,7 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                         <button
                             key={section.id}
                             className={`ftd-color-nav-link ${activeSection === section.id ? 'active' : ''}`}
-                            onClick={() => scrollToSection(section.id)}
+                            onClick={() => selectSection(section.id)}
                         >
                             <span className="ftd-nav-icon"><Icon name={section.icon} /></span>
                             <span className="ftd-nav-label">{section.name}</span>
@@ -197,17 +119,22 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
             {/* Content Area */}
             <div className="ftd-color-content">
                 {sections.map((section) => (
-                    <div key={section.id} id={section.id} className="ftd-semantic-section ftd-section ftd-scroll-target">
-                        <div className="ftd-section-header">
-                            <div className="ftd-section-icon"><Icon name={section.icon} /></div>
-                            <h2 className="ftd-section-title">{section.name} Colors</h2>
-                            <span className="ftd-section-count">{section.colors.length} tokens</span>
-                        </div>
+                    <div key={section.id} className={`ftd-semantic-panel ${activeSection === section.id ? 'is-active' : 'is-hidden'}`}>
+                        <div id={section.id} className="ftd-semantic-section ftd-section ftd-scroll-target">
+                            <div className="ftd-foundation-intro">
+                                <h2 className="ftd-section-title">Semantic Tokens</h2>
+                                <p className="ftd-foundation-subtitle">
+                                    {section.name}
+                                    {' '}
+                                    tokens with resolved aliases. Click any row to copy the CSS variable.
+                                </p>
+                            </div>
 
-                        <SemanticColorGroups
-                            colors={section.colors}
-                            onCopy={handleCopy}
-                        />
+                            <SemanticColorGroups
+                                colors={section.colors}
+                                onCopy={handleCopy}
+                            />
+                        </div>
                     </div>
                 ))}
 
@@ -259,53 +186,79 @@ function SemanticColorGroups({
         return groups;
     }, [colors]);
 
+    const stateOrder = ['default', 'primary', 'secondary', 'tertiary', 'hover', 'active', 'focus', 'pressed', 'selected', 'subtle', 'muted', 'disabled'];
+    const sortedGroupEntries = (groupColors: ParsedColorToken[]) => {
+        const rankOf = (name: string) => {
+            const lowered = name.toLowerCase();
+            const found = stateOrder.findIndex(state => lowered.includes(state));
+            return found === -1 ? Number.MAX_SAFE_INTEGER : found;
+        };
+
+        return [...groupColors].sort((a, b) => {
+            const rankA = rankOf(a.name);
+            const rankB = rankOf(b.name);
+            if (rankA !== rankB) return rankA - rankB;
+            return a.name.localeCompare(b.name);
+        });
+    };
+
     return (
         <div className="ftd-semantic-groups">
             {Object.entries(groupedColors).map(([groupName, groupColors]) => {
                 const representativeColor = groupColors[0]?.resolvedValue || groupColors[0]?.value || '#000';
+                const sortedColors = sortedGroupEntries(groupColors);
 
                 return (
                     <div key={groupName} className="ftd-semantic-group">
                         <div className="ftd-semantic-group-header">
-                            <div
-                                className="ftd-color-family-swatch"
-                                style={{ backgroundColor: representativeColor }}
-                            />
+                            <span className="ftd-semantic-group-dot" style={{ backgroundColor: representativeColor }} />
                             <h3 className="ftd-semantic-group-name">
                                 {groupName.charAt(0).toUpperCase() + groupName.slice(1)}
                             </h3>
-                            <span className="ftd-semantic-group-count">{groupColors.length} variants</span>
+                            <span className="ftd-semantic-group-count">{groupColors.length} tokens</span>
                         </div>
 
-                        <div className="ftd-token-grid">
-                            {groupColors.map((color) => {
-                                const isAlias = color.value.startsWith('{');
-                                const bgColor = color.resolvedValue || color.value;
-                                const textColor = getContrastColor(bgColor);
+                        <div className="ftd-semantic-table-wrap">
+                            <div className="ftd-semantic-table-head">
+                                <span>Token</span>
+                                <span>Alias</span>
+                                <span>Hex</span>
+                            </div>
+                            <div className="ftd-semantic-table-body">
+                                {sortedColors.map((color) => {
+                                    const resolvedValue = color.resolvedValue || color.value;
+                                    const aliasValue = color.value.startsWith('{') && color.value.endsWith('}') ? color.value : resolvedValue;
+                                    const hexValue = resolvedValue.startsWith('#') ? resolvedValue.toUpperCase() : resolvedValue;
 
-                                return (
-                                    <div
-                                        key={color.name}
-                                        className="ftd-token-card"
-                                        data-token-name={color.name}
-                                        data-token-css-var={color.cssVariable}
-                                        onClick={() => onCopy(color)}
-                                    >
-                                        <div className="ftd-token-swatch" style={{ backgroundColor: bgColor, color: textColor }}>
-                                            {isAlias && <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>Alias</span>}
-                                        </div>
-                                        <div className="ftd-token-info">
-                                            <p className="ftd-token-name">{color.name}</p>
-                                            <div className="ftd-token-values-row">
-                                                <span className="ftd-token-css-var">{color.cssVariable}</span>
-                                                <span className="ftd-token-hex">
-                                                    {isAlias ? color.resolvedValue?.substring(0, 9) : color.value.substring(0, 9)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={color.name}
+                                            className="ftd-semantic-row"
+                                            data-token-name={color.name}
+                                            data-token-css-var={color.cssVariable}
+                                            onClick={() => onCopy(color)}
+                                            title={`Click to copy: var(${color.cssVariable})`}
+                                        >
+                                            <span className="ftd-semantic-token-cell">
+                                                <span className="ftd-semantic-row-swatch" style={{ backgroundColor: resolvedValue }} />
+                                                <code className="ftd-semantic-token">{color.cssVariable}</code>
+                                            </span>
+                                            <code className="ftd-semantic-alias">
+                                                {aliasValue}
+                                                {' '}
+                                                &#8594;
+                                                {' '}
+                                                {`var(${color.cssVariable})`}
+                                            </code>
+                                            <span className="ftd-semantic-hex-cell">
+                                                <code className="ftd-semantic-hex">{hexValue}</code>
+                                                <span className="ftd-semantic-copy-btn">Copy var</span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 );
