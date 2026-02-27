@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { RadiusDisplayProps, ParsedRadiusToken } from '../types';
 import { parseRadiusTokens } from '../utils/dimension';
+import { toTokenPathLabel } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
@@ -95,7 +96,7 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
                                     data-token-name={token.name}
                                     data-token-css-var={token.cssVariable}
                                 >
-                                    <code className="ftd-radius-scale-token">{token.cssVariable}</code>
+                                    <code className="ftd-radius-scale-token">{toTokenPathLabel(token.name)}</code>
                                     <code className="ftd-radius-scale-value">{token.value}</code>
                                     <div className="ftd-radius-scale-preview-cell">
                                         <span

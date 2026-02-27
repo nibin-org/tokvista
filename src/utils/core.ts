@@ -45,6 +45,23 @@ export function toCssVariable(path: string, prefix: string = ''): string {
 }
 
 /**
+ * Convert a token path to a readable token label (dot notation, kebab-cased parts)
+ */
+export function toTokenPathLabel(path: string): string {
+  return path
+    .split('.')
+    .filter(Boolean)
+    .map((part) =>
+      part
+        .replace(/\//g, '-')
+        .replace(/\s+/g, '-')
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .toLowerCase()
+    )
+    .join('.');
+}
+
+/**
  * Resolve the usable foundation tree without dropping sibling token groups.
  * If Foundation/Value only contains a single "base" wrapper, unwrap it.
  */

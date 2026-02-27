@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { SizeDisplayProps, ParsedSizeToken } from '../types';
 import { parseSizeTokens } from '../utils/dimension';
+import { toTokenPathLabel } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
@@ -111,7 +112,7 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
                                     data-token-name={token.name}
                                     data-token-css-var={token.cssVariable}
                                 >
-                                    <code className="ftd-size-scale-token">{token.cssVariable}</code>
+                                    <code className="ftd-size-scale-token">{toTokenPathLabel(token.name)}</code>
                                     <code className="ftd-size-scale-value">{token.value}</code>
                                     <div className={`ftd-size-scale-width-cell${isPercent ? ' is-percent' : ''}`}>
                                         <span className="ftd-size-scale-bar-track" aria-hidden="true">

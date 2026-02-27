@@ -8,7 +8,7 @@ import { SizeDisplay } from './SizeDisplay';
 import { RadiusDisplay } from './RadiusDisplay';
 import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
-import { findAllTokens, toCssVariable } from '../utils/core';
+import { findAllTokens, toCssVariable, toTokenPathLabel } from '../utils/core';
 import { Icon, type IconName } from './Icon';
 
 interface FoundationTabProps {
@@ -601,7 +601,7 @@ function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
                                     data-token-name={entry.path}
                                     data-token-css-var={entry.cssVar}
                                 >
-                                    <code className="ftd-typography-token">{entry.cssVar}</code>
+                                    <code className="ftd-typography-token">{toTokenPathLabel(entry.path)}</code>
                                     {hasValueColumn && <code className="ftd-typography-value-cell">{entry.value}</code>}
                                     <div className="ftd-typography-preview-cell">
                                         {renderPreview(selectedGroup.key, entry.value)}

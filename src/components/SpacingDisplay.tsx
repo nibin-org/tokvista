@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { SpacingDisplayProps, ParsedSpacingToken } from '../types';
 import { parseSpacingTokens } from '../utils/dimension';
+import { toTokenPathLabel } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
@@ -102,7 +103,7 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
                                     data-token-name={token.name}
                                     data-token-css-var={token.cssVariable}
                                 >
-                                    <code className="ftd-spacing-scale-token">{token.cssVariable}</code>
+                                    <code className="ftd-spacing-scale-token">{toTokenPathLabel(token.name)}</code>
                                     <code className="ftd-spacing-scale-value">{token.value}</code>
                                     <span className="ftd-spacing-scale-bar-track" aria-hidden="true">
                                         <span
