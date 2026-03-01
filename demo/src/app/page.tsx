@@ -46,6 +46,16 @@ function getSourceFromQuery(): string {
   }
 }
 
+function withCacheBust(url: string): string {
+  try {
+    const parsed = new URL(url)
+    parsed.searchParams.set('__tokvista_ts', String(Date.now()))
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 export default function Home() {
   const [tokens, setTokens] = useState<TokensPayload>(defaultTokens as TokensPayload)
   const [subtitle, setSubtitle] = useState(
@@ -68,7 +78,7 @@ export default function Home() {
 
     async function loadFromSource() {
       try {
-        const response = await fetch(source, { cache: 'no-store' })
+        const response = await fetch(withCacheBust(source), { cache: 'no-store' })
         if (!response.ok) {
           throw new Error(`Failed to load preview tokens (${response.status})`)
         }
