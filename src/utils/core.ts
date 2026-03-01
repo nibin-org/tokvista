@@ -118,13 +118,22 @@ export function resolveTokenValue(value: string, tokenMap: Record<string, string
   
   while (currentValue.startsWith('{') && currentValue.endsWith('}') && depth < maxDepth) {
     const refPath = currentValue.slice(1, -1);
-    const resolved = tokenMap[refPath];
+    let resolved = tokenMap[refPath];
+    if (resolved === undefined && refPath.includes('.')) {
+      // Support collection-prefixed aliases like {Tokvista.base.color.blue.50}
+      const withoutCollectionPrefix = refPath.slice(refPath.indexOf('.') + 1);
+      resolved = tokenMap[withoutCollectionPrefix];
+    }
     
     if (resolved !== undefined) {
       currentValue = resolved;
     } else {
       // Try fuzzy match (if path in map ends with refPath)
-      const entry = Object.entries(tokenMap).find(([path]) => path.endsWith(refPath));
+      let entry = Object.entries(tokenMap).find(([path]) => path.endsWith(refPath));
+      if (!entry && refPath.includes('.')) {
+        const withoutCollectionPrefix = refPath.slice(refPath.indexOf('.') + 1);
+        entry = Object.entries(tokenMap).find(([path]) => path.endsWith(withoutCollectionPrefix));
+      }
       if (entry) {
         currentValue = entry[1];
       } else {

@@ -21,6 +21,88 @@ interface ComponentData {
     dimensions: Record<string, DimensionGroup>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasStructuredSets(record: Record<string, unknown>): boolean {
+    if (isRecord(record['Foundation/Value']) || isRecord(record['Semantic/Value'])) {
+        return true;
+    }
+    if (isRecord(record.Foundation) || isRecord(record.Semantic) || isRecord(record.Components)) {
+        return true;
+    }
+    return Object.keys(record).some((key) => key.startsWith('Components/'));
+}
+
+function normalizeTokenSetsRoot(input: unknown): Record<string, unknown> {
+    if (!isRecord(input)) return {};
+
+    const directRoot = isRecord(input.tokens) ? (input.tokens as Record<string, unknown>) : input;
+    if (hasStructuredSets(directRoot)) {
+        return directRoot;
+    }
+
+    const candidateKeys = Object.keys(directRoot).filter((key) => !key.startsWith('$'));
+    if (candidateKeys.length === 1) {
+        const inner = directRoot[candidateKeys[0]];
+        if (isRecord(inner) && hasStructuredSets(inner)) {
+            return inner;
+        }
+    }
+
+    return directRoot;
+}
+
+function extractSemanticSet(tokensRoot: Record<string, unknown>): NestedTokens {
+    if (isRecord(tokensRoot['Semantic/Value'])) {
+        return tokensRoot['Semantic/Value'] as NestedTokens;
+    }
+    if (isRecord(tokensRoot.Semantic)) {
+        const semanticRoot = tokensRoot.Semantic as Record<string, unknown>;
+        if (isRecord(semanticRoot.Value)) {
+            return semanticRoot.Value as NestedTokens;
+        }
+        return semanticRoot as NestedTokens;
+    }
+    return {};
+}
+
+function extractComponentSet(tokensRoot: Record<string, unknown>): Record<string, unknown> {
+    const mergedFromPrefixed = Object.entries(tokensRoot)
+        .filter(([key]) => key.startsWith('Components/'))
+        .reduce((acc, [_key, value]) => {
+            if (isRecord(value)) {
+                return deepMergeRecords(acc, value as Record<string, unknown>);
+            }
+            return acc;
+        }, {} as Record<string, unknown>);
+
+    if (isRecord(tokensRoot.Components)) {
+        const componentsRoot = tokensRoot.Components as Record<string, unknown>;
+        const directComponents = isRecord(componentsRoot.Value)
+            ? (componentsRoot.Value as Record<string, unknown>)
+            : componentsRoot;
+        return deepMergeRecords(mergedFromPrefixed, directComponents);
+    }
+
+    return mergedFromPrefixed;
+}
+
+function extractFoundationSet(tokensRoot: Record<string, unknown>): NestedTokens {
+    if (isRecord(tokensRoot.Foundation)) {
+        const foundationRoot = tokensRoot.Foundation as Record<string, unknown>;
+        const directFoundation = isRecord(foundationRoot.Value)
+            ? (foundationRoot.Value as Record<string, unknown>)
+            : foundationRoot;
+        const extracted = getFoundationTokenTree(directFoundation);
+        if (Object.keys(extracted).length > 0) {
+            return extracted as NestedTokens;
+        }
+    }
+    return getFoundationTokenTree(tokensRoot) as NestedTokens;
+}
+
 /**
  * TokenDocumentation - Production-ready Design System Documentation
  * Displays tokens in three main tabs: Foundation, Semantic, and Components
@@ -38,6 +120,8 @@ export function TokenDocumentation({
     onTokenClick,
     playgroundLock,
 }: TokenDocumentationProps) {
+    const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
+
     // State
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
     const [isMounted, setIsMounted] = useState(false);
@@ -404,30 +488,18 @@ export function TokenDocumentation({
 
     // --- Extract the three main token sets ---
     const { foundationTokens, semanticTokens, componentTokens } = useMemo(() => {
-        const foundation = getFoundationTokenTree(tokens);
-
-        const semantic = (tokens as any)["Semantic/Value"] || {};
-
-        // Extract all component sets (e.g., "Components/Mode 1", "Components/Mode 2", etc.)
-        const components = Object.entries(tokens)
-            .filter(([key]) => key.startsWith("Components/"))
-            .reduce((acc, [key, val]) => {
-                // Merge all component sets
-                if (val && typeof val === 'object') {
-                    return deepMergeRecords(acc, val as Record<string, unknown>);
-                }
-                return acc;
-            }, {} as Record<string, unknown>);
-
+        const foundation = extractFoundationSet(normalizedTokenSets);
+        const semantic = extractSemanticSet(normalizedTokenSets);
+        const components = extractComponentSet(normalizedTokenSets);
         return {
             foundationTokens: foundation,
             semanticTokens: semantic,
             componentTokens: components,
         };
-    }, [tokens]);
+    }, [normalizedTokenSets]);
 
     // --- Create Global Token Map for Resolution ---
-    const tokenMap = useMemo(() => createTokenMap(tokens), [tokens]);
+    const tokenMap = useMemo(() => createTokenMap(normalizedTokenSets), [normalizedTokenSets]);
 
     // --- Determine which tabs to show ---
     const availableTabs = useMemo(() => {
@@ -730,7 +802,7 @@ export function TokenDocumentation({
 
                 {activeTab === 'playground' && (
                     <PlaygroundTab
-                        tokens={tokens}
+                        tokens={normalizedTokenSets as FigmaTokens}
                         tokenMap={tokenMap}
                         config={playgroundConfig}
                         setConfig={setPlaygroundConfig}
@@ -746,7 +818,7 @@ export function TokenDocumentation({
                 <SearchModal
                     isOpen={searchOpen}
                     onClose={() => setSearchOpen(false)}
-                    tokens={tokens}
+                    tokens={normalizedTokenSets as FigmaTokens}
                     onTokenClick={onTokenClick}
                     onNavigateToTab={(tab) => setActiveTab(tab)}
                     onScrollToToken={handleScrollToToken}
@@ -756,7 +828,7 @@ export function TokenDocumentation({
             <ExportModal
                 isOpen={exportOpen}
                 onClose={() => setExportOpen(false)}
-                tokens={tokens}
+                tokens={normalizedTokenSets as FigmaTokens}
             />
 
             <ResetModal

@@ -487,23 +487,46 @@ const renderVariantPreview = (
     if (!isTokenGroup(variantTokens)) return null;
 
     const findToken = (keys: string[]) => {
+        const normalizedKeys = keys.map((key) => key.toLowerCase());
+
+        // Exact match first
         for (const key of keys) {
             const entry = Object.entries(variantTokens).find(([tokenKey]) => tokenKey.toLowerCase() === key);
             if (entry && isSingleToken(entry[1])) return entry[1] as SingleToken;
+        }
+
+        // Fuzzy contains match (handles keys like bg-default, text-muted, border-strong)
+        for (const [tokenKey, tokenValue] of Object.entries(variantTokens)) {
+            if (!isSingleToken(tokenValue)) continue;
+            const lowered = tokenKey.toLowerCase();
+            if (normalizedKeys.some((candidate) => lowered.includes(candidate))) {
+                return tokenValue as SingleToken;
+            }
         }
         return null;
     };
 
     const activeState: ButtonState = 'normal';
     const previewSize = defaultButtonSize || 'md';
-    const fillToken = isButtonComponent ? getButtonVariantToken(variantTokens, 'fill', activeState) : findToken(['fill', 'background']);
-    const strokeToken = isButtonComponent ? getButtonVariantToken(variantTokens, 'stroke', activeState) : findToken(['stroke', 'border']);
-    const textToken = isButtonComponent ? getButtonVariantToken(variantTokens, 'text', activeState) : findToken(['text', 'label']);
+    const fillToken = isButtonComponent
+        ? getButtonVariantToken(variantTokens, 'fill', activeState)
+        : findToken(['fill', 'background', 'bg', 'surface', 'container']);
+    const strokeToken = isButtonComponent
+        ? getButtonVariantToken(variantTokens, 'stroke', activeState)
+        : findToken(['stroke', 'border', 'outline', 'ring']);
+    const textToken = isButtonComponent
+        ? getButtonVariantToken(variantTokens, 'text', activeState)
+        : findToken(['text', 'label', 'fg', 'foreground', 'content']);
+    const radiusToken = !isButtonComponent ? findToken(['radius', 'round']) : null;
 
     if (!fillToken && !strokeToken && !textToken) return null;
 
-    const backgroundColor = fillToken ? getResolvedValue(fillToken.value, tokenMap) : 'transparent';
-    const borderColor = strokeToken ? getResolvedValue(strokeToken.value, tokenMap) : 'transparent';
+    const backgroundColor = fillToken
+        ? getResolvedValue(fillToken.value, tokenMap)
+        : 'rgba(var(--ftd-primary-rgb), 0.07)';
+    const borderColor = strokeToken
+        ? getResolvedValue(strokeToken.value, tokenMap)
+        : 'rgba(var(--ftd-primary-rgb), 0.22)';
     const textColor = textToken ? getResolvedValue(textToken.value, tokenMap) : 'var(--ftd-text-main)';
     const heightValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'height', previewSize) : null;
     const fontSizeValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'font-size', previewSize) : null;
@@ -523,7 +546,7 @@ const renderVariantPreview = (
                     background: backgroundColor,
                     color: textColor,
                     border: `1px solid ${borderColor}`,
-                    borderRadius: radiusValue || '8px',
+                    borderRadius: radiusValue || (radiusToken ? getResolvedValue(radiusToken.value, tokenMap) : '8px'),
                     fontSize: fontSizeValue || undefined,
                     lineHeight: lineHeightValue || undefined,
                     height: heightValue || undefined,
@@ -532,7 +555,7 @@ const renderVariantPreview = (
                     cursor: 'pointer',
                 }}
             >
-                Button
+                {isButtonComponent ? 'Button' : 'Preview'}
             </button>
         </div>
     );
