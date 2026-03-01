@@ -36,6 +36,7 @@ type AnalyticsWindow = Window & {
 const UTM_QUERY = 'utm_source=figma_plugin&utm_medium=shared_preview&utm_campaign=tokvista_install'
 const INSTALL_URL = `https://www.npmjs.com/package/tokvista?${UTM_QUERY}`
 const DOCS_URL = `https://github.com/nibin-org/tokvista?${UTM_QUERY}#readme`
+const FIGMA_FILES_URL = 'https://www.figma.com/files/recent'
 const QUICK_START_COMMANDS = [
   { id: 'npm', label: 'npm', command: 'npm i tokvista' },
   { id: 'pnpm', label: 'pnpm', command: 'pnpm add tokvista' },
@@ -171,6 +172,34 @@ function buildLocalPreviewUrl(rawUrl: string): string {
   return `${base}?source=${encodeURIComponent(rawUrl)}`
 }
 
+function normalizeHttpUrl(value: string): string {
+  const trimmed = (value || '').trim()
+  if (!trimmed) return ''
+  try {
+    const parsed = new URL(trimmed)
+    if (!/^https?:$/i.test(parsed.protocol)) return ''
+    return parsed.toString()
+  } catch {
+    return ''
+  }
+}
+
+function getRestorableUrl(item: SnapshotHistoryItem | null): string {
+  if (!item) return ''
+  const rawUrl = normalizeHttpUrl(item.rawUrl)
+  if (rawUrl) return rawUrl
+  const previewUrl = normalizeHttpUrl(item.previewUrl)
+  if (!previewUrl) return ''
+  try {
+    const parsed = new URL(previewUrl)
+    const source = normalizeHttpUrl(parsed.searchParams.get('source') || '')
+    if (source) return source
+    return previewUrl.toLowerCase().includes('/tokens.json') ? previewUrl : ''
+  } catch {
+    return ''
+  }
+}
+
 function trackEvent(eventName: string, payload: TrackPayload = {}) {
   if (typeof window === 'undefined') return
   const analyticsWindow = window as AnalyticsWindow
@@ -260,6 +289,7 @@ export default function Home() {
     () => historyItems.find((item) => item.id === selectedHistoryId) || null,
     [historyItems, selectedHistoryId]
   )
+  const selectedHistoryRestoreUrl = useMemo(() => getRestorableUrl(selectedHistoryItem), [selectedHistoryItem])
   const historyAvailable = Boolean(sourceContext?.historyEndpoint)
   const installIntentLabel = useMemo(
     () => (sharedSourceLabel ? sharedSourceLabel.toLowerCase().replace(/\s+/g, '-') : 'shared-preview'),
@@ -475,7 +505,7 @@ export default function Home() {
 
   async function restoreInFigma() {
     if (!selectedHistoryItem) return
-    const restoreUrl = selectedHistoryItem.rawUrl || selectedHistoryItem.previewUrl
+    const restoreUrl = selectedHistoryRestoreUrl
     if (!restoreUrl) {
       setHistoryStatus('Selected snapshot has no restorable URL.')
       return
@@ -487,12 +517,29 @@ export default function Home() {
     } catch {
       // Ignore clipboard failure, still open Figma.
     }
-    setHistoryStatus('Snapshot URL copied. Open Tokvista plugin in Figma and import this snapshot to restore.')
+    setHistoryStatus(
+      'Snapshot URL copied. In Figma run Tokvista from Plugins > Development, then Import tab > Import from URL.'
+    )
     trackEvent('tokvista_snapshot_restore_figma', {
       source: installIntentLabel,
       version: selectedHistoryItem.versionId,
     })
-    window.open('https://www.figma.com/files/recent', '_blank', 'noopener,noreferrer')
+    window.open(FIGMA_FILES_URL, '_blank', 'noopener,noreferrer')
+  }
+
+  async function copyRestoreUrl() {
+    if (!selectedHistoryRestoreUrl) {
+      setHistoryStatus('No restorable URL available for this snapshot.')
+      return
+    }
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(selectedHistoryRestoreUrl)
+      }
+      setHistoryStatus('Snapshot URL copied. Paste it into Tokvista plugin > Import > Import from URL.')
+    } catch {
+      setHistoryStatus('Could not copy URL. Copy it manually from the field below.')
+    }
   }
 
   return (
@@ -714,6 +761,29 @@ export default function Home() {
                           </a>
                         ) : null}
                       </div>
+                      {selectedHistoryRestoreUrl ? (
+                        <div className={styles.historyRestoreBox}>
+                          <div className={styles.historyRestoreLabel}>Restore URL (paste in plugin Import from URL)</div>
+                          <div className={styles.historyRestoreRow}>
+                            <input
+                              type="text"
+                              readOnly
+                              value={selectedHistoryRestoreUrl}
+                              className={styles.historyRestoreInput}
+                              aria-label="Restorable snapshot URL"
+                            />
+                            <button
+                              type="button"
+                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                              onClick={() => void copyRestoreUrl()}
+                            >
+                              Copy URL
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.historyRestoreMissing}>This snapshot has no raw tokens URL to restore.</div>
+                      )}
                     </>
                   ) : (
                     <div className={styles.historyEmpty}>Select a snapshot version to compare.</div>

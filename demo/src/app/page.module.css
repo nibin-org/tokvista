@@ -328,6 +328,48 @@
   flex-wrap: wrap;
 }
 
+.historyRestoreBox {
+  margin-top: 12px;
+  border: 1px solid var(--ftd-border);
+  background: var(--ftd-bg-subtle);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.historyRestoreLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ftd-text-muted);
+  font-weight: 700;
+}
+
+.historyRestoreRow {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historyRestoreInput {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--ftd-border);
+  background: var(--ftd-surface-bg-strong);
+  color: var(--ftd-text-main);
+  font-family: var(--ftd-font-mono);
+  font-size: 0.72rem;
+  padding: 0 10px;
+}
+
+.historyRestoreMissing {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--ftd-text-sub);
+}
+
 .historyEmpty {
   color: var(--ftd-text-sub);
   font-size: 0.82rem;
