@@ -6,6 +6,7 @@ import type { NestedTokens, ParsedColorToken } from '../types';
 import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
+import { TokenPreview } from './TokenPreview';
 import { findAllTokens, resolveTokenValue, toCssVariable } from '../utils/core';
 
 interface SemanticTabProps {
@@ -344,7 +345,7 @@ function SemanticColorGroups({
 }
 
 /**
- * Display non-color semantic tokens in a simple grid
+ * Display non-color semantic tokens with premium previews
  */
 function SemanticGenericTokens({
     tokens,
@@ -362,20 +363,16 @@ function SemanticGenericTokens({
                 return (
                     <div
                         key={token.name}
-                        className="ftd-token-card"
+                        className="ftd-display-card"
                         data-token-name={token.name}
                         data-token-css-var={token.cssVariable}
                         onClick={() => onCopy(token)}
                     >
-                        <div className="ftd-token-info">
-                            <p className="ftd-token-name">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span className="ftd-token-css-var">{token.cssVariable}</span>
-                                <span className="ftd-token-hex">{displayValue}</span>
-                            </div>
-                            {isAlias && (
-                                <span className="ftd-token-alias-badge">Alias: {token.value}</span>
-                            )}
+                        <TokenPreview type={token.type} value={displayValue} name={token.name} />
+                        <p className="ftd-token-card-label">{token.name}</p>
+                        <div className="ftd-token-values-row">
+                            <span className="ftd-token-css-var">{token.cssVariable}</span>
+                            <span className="ftd-token-hex">{displayValue}</span>
                         </div>
                     </div>
                 );

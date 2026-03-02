@@ -3,13 +3,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens } from '../types';
-import { SpacingDisplay } from './SpacingDisplay';
-import { SizeDisplay } from './SizeDisplay';
-import { RadiusDisplay } from './RadiusDisplay';
 import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
 import { findAllTokens, toCssVariable } from '../utils/core';
 import { Icon, type IconName } from './Icon';
+import { TokenPreview } from './TokenPreview';
 
 interface FoundationTabProps {
     tokens: NestedTokens;
@@ -281,7 +279,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
-                                <GenericTokenDisplay tokens={section.tokens} />
+                                <GenericTokenDisplay tokens={section.tokens} tokenType={section.name} />
                             </div>
                         )}
                     </React.Fragment>
@@ -291,134 +289,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
     );
 }
 
-function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
-    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
-    const toastIdRef = useRef(0);
-    const toastTimerRef = useRef<number | null>(null);
-
-    const entries = findAllTokens(tokens);
-
-    const showToast = (value: string) => {
-        const id = ++toastIdRef.current;
-        setCopiedToast({ id, value });
-        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = window.setTimeout(() => {
-            setCopiedToast((current) => (current && current.id === id ? null : current));
-            toastTimerRef.current = null;
-        }, 2000);
-    };
-
-    useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
-    }, []);
-
-    const handleCopy = async (value: string) => {
-        const success = await copyToClipboard(value);
-        if (success) showToast(value);
-    };
-
-    if (entries.length === 0) return null;
-
-    return (
-        <>
-            <div className="ftd-token-grid">
-                {entries.map(({ path, token }) => {
-                    const name = path;
-                    const cssVar = toCssVariable(path);
-                    const varValue = `var(${cssVar})`;
-                    const lowerName = name.toLowerCase();
-                    const isLineHeight = lowerName.includes('lineheight') || lowerName.includes('line-height') || lowerName.includes('line');
-                    const isFontFamily = lowerName.includes('fontfamily') || lowerName.includes('font-family') || lowerName.includes('family');
-                    const isFontWeight = lowerName.includes('fontweight') || lowerName.includes('font-weight') || lowerName.includes('weight');
-                    const isLetterSpacing = lowerName.includes('letterspacing') || lowerName.includes('letter-spacing') || lowerName.includes('letter');
-                    const isFontSize = lowerName.includes('fontsize') || lowerName.includes('font-size') || lowerName.includes('size');
-
-                    return (
-                        <div
-                            key={path}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={name}
-                            onClick={() => void handleCopy(varValue)}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
-                                {isLineHeight ? (
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: token.value,
-                                            width: '32px'
-                                        }}
-                                    >
-                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
-                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
-                                    </div>
-                                ) : (
-                                    <div
-                                        style={{
-                                            fontFamily: isFontFamily ? String(token.value) : 'inherit',
-                                            fontSize: isFontSize ? String(token.value) : '24px',
-                                            fontWeight: isFontWeight ? String(token.value) : 600,
-                                            letterSpacing: isLetterSpacing ? String(token.value) : 'normal',
-                                            color: 'var(--ftd-primary)',
-                                            lineHeight: 1
-                                        }}
-                                    >
-                                        Aa
-                                    </div>
-                                )}
-                            </div>
-                            <p className="ftd-token-card-label">{name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(cssVar);
-                                    }}
-                                >
-                                    {cssVar}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(String(token.value));
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {copiedToast &&
-                (typeof document !== 'undefined'
-                    ? createPortal(
-                        <div key={copiedToast.id} className="ftd-copied-toast">
-                            <div className="ftd-toast-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </div>
-                            <div className="ftd-toast-content">
-                                <span className="ftd-toast-label">Copied</span>
-                                <span className="ftd-toast-value">{copiedToast.value}</span>
-                            </div>
-                        </div>,
-                        document.body
-                    )
-                    : null)}
-        </>
-    );
-}
-
-function GenericTokenDisplay({ tokens }: { tokens: NestedTokens }) {
+function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; tokenType: string }) {
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const toastIdRef = useRef(0);
     const toastTimerRef = useRef<number | null>(null);
@@ -464,17 +335,11 @@ function GenericTokenDisplay({ tokens }: { tokens: NestedTokens }) {
                             title={`Click to copy: ${varValue}`}
                         >
                             <div className="ftd-token-preview-container">
-                                <div
-                                    style={{
-                                        fontSize: '14px',
-                                        fontWeight: 600,
-                                        color: 'var(--ftd-primary)',
-                                        fontFamily: 'var(--ftd-font-mono)',
-                                        wordBreak: 'break-all'
-                                    }}
-                                >
-                                    {String(token.value).substring(0, 20)}{String(token.value).length > 20 ? '...' : ''}
-                                </div>
+                                <TokenPreview 
+                                    type={tokenType}
+                                    value={String(token.value)}
+                                    name={path}
+                                />
                             </div>
                             <p className="ftd-token-card-label">{path}</p>
                             <div className="ftd-token-values-row">
