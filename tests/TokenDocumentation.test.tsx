@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import React from 'react';
@@ -230,6 +230,61 @@ describe('TokenDocumentation Component', () => {
             // On mobile, certain elements might change or be hidden/visible
             // Just verifying it renders without crashing in "mobile mode"
             expect(screen.getByText(/Design Tokens/i)).toBeInTheDocument();
+        });
+    });
+
+    describe('Format Selector', () => {
+        beforeEach(() => {
+            localStorage.clear();
+        });
+
+        it('should render format selector with default CSS Variables', () => {
+            render(<TokenDocumentation tokens={mockTokens} />);
+            expect(screen.getByText('CSS Variables')).toBeInTheDocument();
+        });
+
+        it('should switch to SCSS format when selected', () => {
+            render(<TokenDocumentation tokens={mockTokens} />);
+            
+            const formatButton = screen.getByText('CSS Variables');
+            fireEvent.click(formatButton);
+            
+            const scssOption = screen.getByText('SCSS Variables');
+            fireEvent.click(scssOption);
+            
+            expect(screen.getByText('SCSS Variables')).toBeInTheDocument();
+        });
+
+        it('should switch to Tailwind format when selected', () => {
+            render(<TokenDocumentation tokens={mockTokens} />);
+            
+            const formatButton = screen.getByText('CSS Variables');
+            fireEvent.click(formatButton);
+            
+            const tailwindOption = screen.getByText('Tailwind Classes');
+            fireEvent.click(tailwindOption);
+            
+            expect(screen.getByText('Tailwind Classes')).toBeInTheDocument();
+        });
+
+        it('should persist format selection in localStorage', () => {
+            render(<TokenDocumentation tokens={mockTokens} />);
+            
+            const formatButton = screen.getByText('CSS Variables');
+            fireEvent.click(formatButton);
+            
+            const scssOption = screen.getByText('SCSS Variables');
+            fireEvent.click(scssOption);
+            
+            expect(localStorage.getItem('ftd-copy-format')).toBe('scss');
+        });
+
+        it('should load format preference from localStorage', () => {
+            localStorage.setItem('ftd-copy-format', 'tailwind');
+            
+            render(<TokenDocumentation tokens={mockTokens} />);
+            
+            expect(screen.getByText('Tailwind Classes')).toBeInTheDocument();
         });
     });
 });
