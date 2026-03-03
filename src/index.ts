@@ -46,6 +46,8 @@ export { Spacing, Colors, Sizes, Radius } from './components/StandaloneComponent
 // Types
 export type {
   TokenDocumentationProps,
+  SnapshotHistoryOptions,
+  SnapshotAccessMode,
   ColorDisplayProps,
   SpacingDisplayProps,
   RadiusDisplayProps,

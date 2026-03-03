@@ -2,7 +2,14 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { TokenDocumentationProps, FigmaTokens, NestedTokens, VariantTokens, DimensionGroup } from '../types';
+import type {
+    TokenDocumentationProps,
+    FigmaTokens,
+    NestedTokens,
+    VariantTokens,
+    DimensionGroup,
+    SnapshotAccessMode,
+} from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
@@ -22,6 +29,20 @@ interface ComponentData {
     variants: Record<string, VariantTokens>;
     dimensions: Record<string, DimensionGroup>;
 }
+
+type TokensPayload = Record<string, unknown>;
+type CompareSummary = { added: number; changed: number; removed: number };
+type TokenLeaf = { type: string; value: unknown };
+type SnapshotHistoryItem = {
+    id: string;
+    versionId: string;
+    commitSha: string;
+    commitMessage: string;
+    publishedAt: string;
+    rawUrl: string;
+    previewUrl: string;
+    referenceUrl: string;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -105,6 +126,198 @@ function extractFoundationSet(tokensRoot: Record<string, unknown>): NestedTokens
     return getFoundationTokenTree(tokensRoot) as NestedTokens;
 }
 
+function getComparableRoot(payload: TokensPayload): unknown {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+    const maybeTokens = (payload as Record<string, unknown>).tokens;
+    if (maybeTokens && typeof maybeTokens === 'object' && !Array.isArray(maybeTokens)) {
+        return maybeTokens;
+    }
+    return payload;
+}
+
+function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string, TokenLeaf> = new Map()): Map<string, TokenLeaf> {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        return out;
+    }
+    const record = input as Record<string, unknown>;
+    const hasLeafShape = typeof record.type === 'string' && Object.prototype.hasOwnProperty.call(record, 'value');
+    if (hasLeafShape) {
+        const key = path.join('.');
+        if (key) out.set(key, { type: record.type as string, value: record.value });
+        return out;
+    }
+    Object.entries(record).forEach(([key, value]) => {
+        flattenTokenLeaves(value, [...path, key], out);
+    });
+    return out;
+}
+
+function serializeLeaf(leaf: TokenLeaf): string {
+    return `${leaf.type}:${JSON.stringify(leaf.value)}`;
+}
+
+function getAliasTarget(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const match = value.trim().match(/^\{([^{}]+)\}$/);
+    return match?.[1]?.trim() || null;
+}
+
+function normalizeAliasCandidates(alias: string): string[] {
+    const trimmed = alias.trim();
+    if (!trimmed) return [];
+    return [trimmed, trimmed.replace(/\//g, '.'), trimmed.replace(/\./g, '/')].filter(
+        (candidate, index, list) => candidate && list.indexOf(candidate) === index
+    );
+}
+
+function resolveLeafValue(value: unknown, tokensByPath: Map<string, TokenLeaf>, visited: Set<string> = new Set()): unknown {
+    const alias = getAliasTarget(value);
+    if (!alias) return value;
+    const candidates = normalizeAliasCandidates(alias);
+    for (const candidate of candidates) {
+        if (visited.has(candidate)) return value;
+        const target = tokensByPath.get(candidate);
+        if (!target) continue;
+        visited.add(candidate);
+        return resolveLeafValue(target.value, tokensByPath, visited);
+    }
+    return value;
+}
+
+function formatLeafValue(value: unknown): string {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
+function buildCompareSummary(currentPayload: TokensPayload, selectedPayload: TokensPayload): CompareSummary {
+    const currentMap = flattenTokenLeaves(getComparableRoot(currentPayload));
+    const selectedMap = flattenTokenLeaves(getComparableRoot(selectedPayload));
+    let added = 0;
+    let changed = 0;
+    let removed = 0;
+
+    currentMap.forEach((value, key) => {
+        if (!selectedMap.has(key)) {
+            added += 1;
+            return;
+        }
+        const selectedValue = selectedMap.get(key);
+        if (!selectedValue || serializeLeaf(selectedValue) !== serializeLeaf(value)) {
+            changed += 1;
+        }
+    });
+
+    selectedMap.forEach((_value, key) => {
+        if (!currentMap.has(key)) {
+            removed += 1;
+        }
+    });
+
+    return { added, changed, removed };
+}
+
+function normalizeHistoryItems(items: unknown, sourceUrl?: string): SnapshotHistoryItem[] {
+    if (!Array.isArray(items)) return [];
+    const isGitHub = sourceUrl?.includes('raw.githubusercontent.com');
+
+    return items
+        .map((item, index) => {
+            const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
+            if (!record) return null;
+            if (isGitHub) {
+                const sha = typeof record.sha === 'string' ? record.sha : '';
+                const commit = record.commit && typeof record.commit === 'object' ? (record.commit as Record<string, unknown>) : null;
+                const message = commit && typeof commit.message === 'string' ? commit.message : '';
+                const author = commit && commit.author && typeof commit.author === 'object' ? (commit.author as Record<string, unknown>) : null;
+                const date = author && typeof author.date === 'string' ? author.date : '';
+                const htmlUrl = typeof record.html_url === 'string' ? record.html_url : '';
+                let rawUrl = '';
+                if (sourceUrl && sha) {
+                    try {
+                        const parsed = new URL(sourceUrl);
+                        const parts = parsed.pathname.split('/');
+                        if (parts.length >= 4) {
+                            parts[3] = sha;
+                            rawUrl = `${parsed.origin}${parts.join('/')}`;
+                        }
+                    } catch {
+                        rawUrl = '';
+                    }
+                }
+                return {
+                    id: sha || `github-${index}`,
+                    versionId: sha ? sha.slice(0, 7) : `commit-${index + 1}`,
+                    commitSha: sha,
+                    commitMessage: message.split('\n')[0] || 'No commit message',
+                    publishedAt: date,
+                    rawUrl,
+                    previewUrl: '',
+                    referenceUrl: htmlUrl,
+                };
+            }
+
+            const commitSha = typeof record.commitSha === 'string' ? record.commitSha : '';
+            const versionId =
+                typeof record.versionId === 'string' && record.versionId.trim()
+                    ? record.versionId.trim()
+                    : commitSha
+                      ? `c${commitSha.slice(0, 7)}`
+                      : `snapshot-${index + 1}`;
+            const id = typeof record.id === 'string' && record.id ? record.id : `${versionId}-${index}`;
+            return {
+                id,
+                versionId,
+                commitSha,
+                commitMessage: typeof record.commitMessage === 'string' ? record.commitMessage : '',
+                publishedAt: typeof record.publishedAt === 'string' ? record.publishedAt : '',
+                rawUrl: typeof record.rawUrl === 'string' ? record.rawUrl : '',
+                previewUrl: typeof record.previewUrl === 'string' ? record.previewUrl : '',
+                referenceUrl: typeof record.referenceUrl === 'string' ? record.referenceUrl : '',
+            };
+        })
+        .filter((item): item is SnapshotHistoryItem => Boolean(item));
+}
+
+function formatLocalTimestamp(value: string): string {
+    if (!value) return 'Unknown time';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+}
+
+function normalizeHttpUrl(value: string): string {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    try {
+        const parsed = new URL(trimmed);
+        if (!/^https?:$/i.test(parsed.protocol)) return '';
+        return parsed.toString();
+    } catch {
+        return '';
+    }
+}
+
+function buildLocalPreviewUrl(rawUrl: string): string {
+    if (typeof window === 'undefined') return '';
+    const base = `${window.location.origin}/`;
+    return `${base}?source=${encodeURIComponent(rawUrl)}`;
+}
+
+function parseColorValue(value: string): string {
+    try {
+        const parsed = JSON.parse(value);
+        return typeof parsed === 'string' ? parsed : value;
+    } catch {
+        return value;
+    }
+}
+
 /**
  * TokenDocumentation - Production-ready Design System Documentation
  * Displays tokens in three main tabs: Foundation, Semantic, and Components
@@ -121,6 +334,7 @@ export function TokenDocumentation({
     loadDefaultFonts = true,
     onTokenClick,
     playgroundLock,
+    snapshotHistory,
 }: TokenDocumentationProps) {
     const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
 
@@ -132,6 +346,14 @@ export function TokenDocumentation({
     const [searchOpen, setSearchOpen] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
     const [resetModalOpen, setResetModalOpen] = useState(false);
+    const [snapshotOpen, setSnapshotOpen] = useState(false);
+    const [snapshotLoading, setSnapshotLoading] = useState(false);
+    const [snapshotError, setSnapshotError] = useState('');
+    const [snapshotStatus, setSnapshotStatus] = useState('');
+    const [snapshotItems, setSnapshotItems] = useState<SnapshotHistoryItem[]>([]);
+    const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
+    const [selectedSnapshotTokens, setSelectedSnapshotTokens] = useState<TokensPayload | null>(null);
+    const [snapshotCompare, setSnapshotCompare] = useState<CompareSummary>({ added: 0, changed: 0, removed: 0 });
     const copiedToastIdRef = useRef(0);
     const copiedToastTimerRef = useRef<number | null>(null);
 
@@ -349,6 +571,11 @@ export function TokenDocumentation({
     useEffect(() => {
         if (!showSearch && searchOpen) setSearchOpen(false);
     }, [showSearch, searchOpen]);
+
+    useEffect(() => {
+        if (!selectedSnapshotTokens) return;
+        setSnapshotCompare(buildCompareSummary(normalizedTokenSets as TokensPayload, selectedSnapshotTokens));
+    }, [normalizedTokenSets, selectedSnapshotTokens]);
 
     // Handle scrolling to and highlighting a specific token
     const handleScrollToToken = (tokenName: string, category: string, cssVariable?: string) => {
@@ -599,6 +826,175 @@ export function TokenDocumentation({
     // --- Interaction ---
 
 
+    async function loadSnapshotVersion(item: SnapshotHistoryItem) {
+        setSelectedSnapshotId(item.id);
+        setSnapshotStatus('');
+        if (!item.rawUrl) {
+            setSelectedSnapshotTokens(null);
+            setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
+            setSnapshotStatus('Selected snapshot has no raw token URL.');
+            return;
+        }
+        try {
+            const response = await fetch(item.rawUrl, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`Snapshot load failed (${response.status})`);
+            const payload = await response.json();
+            if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+                throw new Error('Snapshot payload is invalid.');
+            }
+            const nextSnapshot = payload as TokensPayload;
+            setSelectedSnapshotTokens(nextSnapshot);
+            setSnapshotCompare(buildCompareSummary(normalizedTokenSets as TokensPayload, nextSnapshot));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setSelectedSnapshotTokens(null);
+            setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
+            setSnapshotStatus(message);
+        }
+    }
+
+    async function loadSnapshotHistory(force = false) {
+        const endpoint = snapshotHistory?.historyEndpoint || '';
+        if (!endpoint) {
+            setSnapshotError('Snapshot history endpoint is not configured.');
+            return;
+        }
+        if (snapshotLoading && !force) return;
+        setSnapshotLoading(true);
+        setSnapshotError('');
+        setSnapshotStatus('');
+        try {
+            const response = await fetch(endpoint, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`History request failed (${response.status})`);
+            const payload = await response.json();
+            const sourceUrl = snapshotHistory?.sourceUrl;
+            const items = normalizeHistoryItems(
+                sourceUrl?.includes('raw.githubusercontent.com') ? payload : (payload as { items?: unknown }).items,
+                sourceUrl
+            );
+            setSnapshotItems(items);
+            if (!items.length) {
+                setSelectedSnapshotId('');
+                setSelectedSnapshotTokens(null);
+                setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
+                setSnapshotStatus('No snapshot history available yet.');
+                return;
+            }
+            const selected = items.find((item) => item.id === selectedSnapshotId) || items[0];
+            await loadSnapshotVersion(selected);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setSnapshotError(message);
+        } finally {
+            setSnapshotLoading(false);
+        }
+    }
+
+    function openSnapshotPanel() {
+        setSnapshotOpen(true);
+        if (!snapshotItems.length || snapshotError) {
+            void loadSnapshotHistory(true);
+        }
+    }
+
+    function openOldSnapshot() {
+        if (!selectedSnapshotItem) return;
+        const targetUrl =
+            selectedSnapshotItem.previewUrl ||
+            (selectedSnapshotItem.rawUrl ? buildLocalPreviewUrl(selectedSnapshotItem.rawUrl) : '');
+        if (!targetUrl) {
+            setSnapshotStatus('Selected snapshot has no preview URL.');
+            return;
+        }
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    async function copyRestoreUrl() {
+        const url = normalizeHttpUrl(selectedSnapshotItem?.rawUrl || '');
+        if (!url) {
+            setSnapshotStatus('No restorable URL available for this snapshot.');
+            return;
+        }
+        try {
+            await copyToClipboard(url);
+            setSnapshotStatus('Snapshot URL copied.');
+        } catch {
+            setSnapshotStatus('Could not copy URL. Copy manually from the row.');
+        }
+    }
+
+    function renderSnapshotDiff(currentTokens: TokensPayload, oldTokens: TokensPayload) {
+        const currentMap = flattenTokenLeaves(getComparableRoot(currentTokens));
+        const oldMap = flattenTokenLeaves(getComparableRoot(oldTokens));
+        const changes: Array<{ name: string; type: string; oldValue: string; newValue: string; changeType: 'added' | 'changed' | 'removed' }> = [];
+
+        currentMap.forEach((value, key) => {
+            if (!oldMap.has(key)) {
+                const resolvedNew = resolveLeafValue(value.value, currentMap);
+                changes.push({ name: key, type: value.type, oldValue: '', newValue: formatLeafValue(resolvedNew), changeType: 'added' });
+            } else {
+                const oldLeaf = oldMap.get(key);
+                if (oldLeaf && serializeLeaf(oldLeaf) !== serializeLeaf(value)) {
+                    const resolvedOld = resolveLeafValue(oldLeaf.value, oldMap);
+                    const resolvedNew = resolveLeafValue(value.value, currentMap);
+                    changes.push({
+                        name: key,
+                        type: value.type,
+                        oldValue: formatLeafValue(resolvedOld),
+                        newValue: formatLeafValue(resolvedNew),
+                        changeType: 'changed',
+                    });
+                }
+            }
+        });
+
+        oldMap.forEach((value, key) => {
+            if (!currentMap.has(key)) {
+                const resolvedOld = resolveLeafValue(value.value, oldMap);
+                changes.push({ name: key, type: value.type, oldValue: formatLeafValue(resolvedOld), newValue: '', changeType: 'removed' });
+            }
+        });
+
+        const visibleCount = snapshotActionsLocked ? maxPreviewDiffs : maxFullDiffs;
+        const visible = changes.slice(0, visibleCount);
+        const hiddenCount = Math.max(changes.length - visible.length, 0);
+
+        return (
+            <div className="ftd-snapshot-diff">
+                {visible.length === 0 ? (
+                    <div className="ftd-snapshot-empty">No visual changes detected.</div>
+                ) : (
+                    visible.map((change) => (
+                        <div key={`${change.name}-${change.changeType}`} className={`ftd-snapshot-diff-card ftd-snapshot-diff-${change.changeType}`}>
+                            <div className="ftd-snapshot-diff-head">
+                                <span className="ftd-snapshot-diff-name">{change.name}</span>
+                                <span className="ftd-snapshot-diff-type">{change.type}</span>
+                            </div>
+                            <div className="ftd-snapshot-diff-body">
+                                {change.oldValue ? (
+                                    <div className={`ftd-snapshot-diff-value ${snapshotActionsLocked ? 'is-blurred' : ''}`}>
+                                        <span>Old</span>
+                                        <code>{parseColorValue(change.oldValue)}</code>
+                                    </div>
+                                ) : null}
+                                {change.oldValue && change.newValue ? <span className="ftd-snapshot-arrow">→</span> : null}
+                                {change.newValue ? (
+                                    <div className="ftd-snapshot-diff-value">
+                                        <span>New</span>
+                                        <code>{parseColorValue(change.newValue)}</code>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    ))
+                )}
+                {snapshotActionsLocked && hiddenCount > 0 ? (
+                    <div className="ftd-snapshot-locked-teaser">+{hiddenCount} more changes in full package</div>
+                ) : null}
+            </div>
+        );
+    }
+
     const handleCopy = async (value: string, label: string, tokenPath?: string) => {
         try {
             const formattedValue = formatTokenForCopy(value, tokenPath || label, copyFormat);
@@ -621,6 +1017,15 @@ export function TokenDocumentation({
             window.clearTimeout(copiedToastTimerRef.current);
         }
     }, []);
+
+    useEffect(() => {
+        if (!snapshotOpen) return;
+        const onEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setSnapshotOpen(false);
+        };
+        window.addEventListener('keydown', onEscape);
+        return () => window.removeEventListener('keydown', onEscape);
+    }, [snapshotOpen]);
 
     const getResolvedColor = (variantTokens: VariantTokens, patterns: string[]) => {
         for (const pattern of patterns) {
@@ -648,6 +1053,16 @@ export function TokenDocumentation({
 
     // --- Sub-Components ---
     const isPlaygroundLocked = Boolean(playgroundLock?.enabled);
+    const snapshotMode: SnapshotAccessMode = snapshotHistory?.accessMode === 'preview' ? 'preview' : 'full';
+    const snapshotEnabled = Boolean(snapshotHistory?.enabled);
+    const maxPreviewSnapshots = snapshotHistory?.maxPreviewSnapshots ?? 3;
+    const maxPreviewDiffs = snapshotHistory?.maxPreviewDiffs ?? 5;
+    const maxFullDiffs = 15;
+    const snapshotActionsLocked = snapshotMode === 'preview';
+    const selectedSnapshotItem = useMemo(
+        () => snapshotItems.find((item) => item.id === selectedSnapshotId) || null,
+        [snapshotItems, selectedSnapshotId]
+    );
 
     const TableSwatch = ({ data }: { data: { reference: string; resolved: string } | null }) => {
         if (!data) return <span className="ftd-cell-empty">-</span>;
@@ -741,6 +1156,18 @@ export function TokenDocumentation({
                             </svg>
                             <span>Export</span>
                         </button>
+                        {snapshotEnabled && (
+                            <button
+                                className="ftd-search-button"
+                                onClick={openSnapshotPanel}
+                                title="Open snapshot history"
+                                aria-label="Open snapshot history"
+                                type="button"
+                            >
+                                <Icon name="components" />
+                                <span>Snapshot History</span>
+                            </button>
+                        )}
                         {showSearch && (
                             <button
                                 className="ftd-search-button"
@@ -835,6 +1262,93 @@ export function TokenDocumentation({
                     />
                 )}
             </div>
+
+            {snapshotOpen && (
+                <div className="ftd-snapshot-backdrop" role="dialog" aria-modal="true" aria-label="Snapshot history" onClick={() => setSnapshotOpen(false)}>
+                    <aside className="ftd-snapshot-panel" onClick={(event) => event.stopPropagation()}>
+                        <header className="ftd-snapshot-header">
+                            <div>
+                                <h3>{snapshotHistory?.title || 'Snapshot History'}</h3>
+                                <p>{snapshotActionsLocked ? 'Preview mode (limited)' : 'Full access mode'}</p>
+                            </div>
+                            <div className="ftd-snapshot-actions">
+                                <button type="button" className="ftd-search-button" onClick={() => void loadSnapshotHistory(true)} disabled={snapshotLoading}>
+                                    {snapshotLoading ? 'Loading...' : 'Refresh'}
+                                </button>
+                                <button type="button" className="ftd-search-button" onClick={() => setSnapshotOpen(false)}>
+                                    Close
+                                </button>
+                            </div>
+                        </header>
+
+                        {snapshotError ? <div className="ftd-snapshot-error">{snapshotError}</div> : null}
+                        {snapshotStatus ? <div className="ftd-snapshot-status">{snapshotStatus}</div> : null}
+                        {snapshotActionsLocked ? (
+                            <div className="ftd-snapshot-lock-note">Preview mode shows limited history. Install tokvista locally for full access.</div>
+                        ) : null}
+
+                        <div className="ftd-snapshot-layout">
+                            <div className="ftd-snapshot-list">
+                                {!snapshotItems.length && !snapshotLoading ? <div className="ftd-snapshot-empty">No versions found yet.</div> : null}
+                                {snapshotItems.map((item, index) => {
+                                    const isLocked = snapshotActionsLocked && index >= maxPreviewSnapshots;
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={item.id}
+                                            className={`ftd-snapshot-item ${item.id === selectedSnapshotId ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                                            onClick={() => {
+                                                if (isLocked) return;
+                                                void loadSnapshotVersion(item);
+                                            }}
+                                            aria-disabled={isLocked}
+                                            title={isLocked ? 'Install tokvista for full snapshot access.' : undefined}
+                                        >
+                                            <div className="ftd-snapshot-item-head">
+                                                <span>{item.versionId}</span>
+                                                <span>{formatLocalTimestamp(item.publishedAt)}</span>
+                                            </div>
+                                            {isLocked ? <div className="ftd-snapshot-item-lock">Locked</div> : null}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="ftd-snapshot-detail">
+                                {selectedSnapshotItem && selectedSnapshotTokens ? (
+                                    <>
+                                        <div className="ftd-snapshot-summary">
+                                            <span className="added">+{snapshotCompare.added} Added</span>
+                                            <span className="changed">~{snapshotCompare.changed} Changed</span>
+                                            <span className="removed">-{snapshotCompare.removed} Removed</span>
+                                        </div>
+                                        {renderSnapshotDiff(normalizedTokenSets as TokensPayload, selectedSnapshotTokens)}
+                                        <div className="ftd-snapshot-links">
+                                            <button type="button" className="ftd-search-button" onClick={openOldSnapshot} disabled={snapshotActionsLocked}>
+                                                Open snapshot
+                                            </button>
+                                            {selectedSnapshotItem.referenceUrl ? (
+                                                <button
+                                                    type="button"
+                                                    className="ftd-search-button"
+                                                    onClick={() => window.open(selectedSnapshotItem.referenceUrl, '_blank', 'noopener,noreferrer')}
+                                                    disabled={snapshotActionsLocked}
+                                                >
+                                                    Open commit
+                                                </button>
+                                            ) : null}
+                                            <button type="button" className="ftd-search-button" onClick={() => void copyRestoreUrl()} disabled={snapshotActionsLocked}>
+                                                Copy restore URL
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="ftd-snapshot-empty">Select a snapshot version to compare.</div>
+                                )}
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            )}
 
             {showSearch && (
                 <SearchModal

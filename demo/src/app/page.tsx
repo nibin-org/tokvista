@@ -9,6 +9,7 @@ import styles from './page.module.css'
 type TokensPayload = Record<string, unknown>
 type TrackPayload = Record<string, string | number | boolean>
 type CompareSummary = { added: number; changed: number; removed: number }
+type TokenLeaf = { type: string; value: unknown }
 type SourceContext = {
   sourceUrl: string
   sourceHost: string
@@ -51,6 +52,120 @@ const QUICK_START_SNIPPET = [
   '  title="Design System"',
   '/>',
 ].join('\n')
+const SNAPSHOT_ONBOARDING_KEY = 'tokvista_snapshot_history_hint_dismissed'
+const SNAPSHOT_COPY_VARIANT_KEY = 'tokvista_snapshot_copy_variant'
+const SNAPSHOT_PM_KEY = 'tokvista_preferred_pm'
+const SNAPSHOT_METRICS_KEY = 'tokvista_snapshot_metrics_v1'
+const SNAPSHOT_UNLOCKED_ITEMS = 3
+const SNAPSHOT_TEASER_DIFF_LIMIT = 5
+const SNAPSHOT_FULL_DIFF_LIMIT = 15
+const SNAPSHOT_HISTORY_RENDER_CAP = 120
+const SNAPSHOT_COMPARE_RANGE_DISABLED_MESSAGE = 'Compare range unlocks after installing tokvista in your project.'
+
+type PackageManagerId = (typeof QUICK_START_COMMANDS)[number]['id']
+type ConversionVariant = 'a' | 'b'
+type SnapshotMetricId =
+  | 'history_open'
+  | 'locked_item_click'
+  | 'unlock_cta_click'
+  | 'install_command_copy'
+  | 'quickstart_copy'
+  | 'install_click'
+type SnapshotMetrics = Record<SnapshotMetricId, number>
+
+const SNAPSHOT_METRIC_LABELS: Array<{ id: SnapshotMetricId; label: string }> = [
+  { id: 'history_open', label: 'History Opens' },
+  { id: 'locked_item_click', label: 'Locked Item Clicks' },
+  { id: 'unlock_cta_click', label: 'Unlock CTA Clicks' },
+  { id: 'install_command_copy', label: 'Install Cmd Copies' },
+  { id: 'quickstart_copy', label: 'Quick Start Copies' },
+  { id: 'install_click', label: 'Install Link Clicks' },
+]
+
+function createEmptySnapshotMetrics(): SnapshotMetrics {
+  return {
+    history_open: 0,
+    locked_item_click: 0,
+    unlock_cta_click: 0,
+    install_command_copy: 0,
+    quickstart_copy: 0,
+    install_click: 0,
+  }
+}
+
+function readSnapshotMetrics(): SnapshotMetrics {
+  if (typeof window === 'undefined') return createEmptySnapshotMetrics()
+  const fallback = createEmptySnapshotMetrics()
+  try {
+    const raw = window.localStorage.getItem(SNAPSHOT_METRICS_KEY)
+    if (!raw) return fallback
+    const parsed = JSON.parse(raw) as Partial<SnapshotMetrics>
+    return {
+      history_open: Number(parsed.history_open || 0),
+      locked_item_click: Number(parsed.locked_item_click || 0),
+      unlock_cta_click: Number(parsed.unlock_cta_click || 0),
+      install_command_copy: Number(parsed.install_command_copy || 0),
+      quickstart_copy: Number(parsed.quickstart_copy || 0),
+      install_click: Number(parsed.install_click || 0),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+function writeSnapshotMetrics(metrics: SnapshotMetrics) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(SNAPSHOT_METRICS_KEY, JSON.stringify(metrics))
+}
+
+function getPackageManagerFromQuery(): PackageManagerId | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const pm = (params.get('pm') || '').trim().toLowerCase()
+  return pm === 'npm' || pm === 'pnpm' || pm === 'yarn' ? pm : null
+}
+
+function getPreferredPackageManager(): PackageManagerId {
+  const fromQuery = getPackageManagerFromQuery()
+  if (fromQuery) return fromQuery
+  if (typeof window !== 'undefined') {
+    const fromStorage = (window.localStorage.getItem(SNAPSHOT_PM_KEY) || '').trim().toLowerCase()
+    if (fromStorage === 'npm' || fromStorage === 'pnpm' || fromStorage === 'yarn') return fromStorage
+  }
+  return 'npm'
+}
+
+function getPreferredInstallCommand(pm: PackageManagerId): string {
+  return QUICK_START_COMMANDS.find((item) => item.id === pm)?.command || QUICK_START_COMMANDS[0].command
+}
+
+function getConversionVariant(): ConversionVariant {
+  if (typeof window === 'undefined') return 'a'
+  const stored = (window.localStorage.getItem(SNAPSHOT_COPY_VARIANT_KEY) || '').trim().toLowerCase()
+  if (stored === 'a' || stored === 'b') return stored
+  const nextVariant: ConversionVariant = Math.random() < 0.5 ? 'a' : 'b'
+  window.localStorage.setItem(SNAPSHOT_COPY_VARIANT_KEY, nextVariant)
+  return nextVariant
+}
+
+function getLockContent(variant: ConversionVariant): { message: string; cta: string } {
+  if (variant === 'b') {
+    return {
+      message: 'Preview is intentionally restricted. Install tokvista to unlock complete snapshot timelines and clear value diffs.',
+      cta: 'Install To Unlock All',
+    }
+  }
+  return {
+    message: 'You are seeing only a teaser: 3 snapshots, masked old values, and locked restore actions. Install for full access.',
+    cta: 'Get Full Snapshot Access',
+  }
+}
+
+function groupKeyFromTokenPath(path: string): string {
+  const parts = path.split('.')
+  if (parts.length <= 2) return path
+  return parts.slice(0, 3).join('.')
+}
 
 function formatLocalTimestamp(value: string): string {
   if (!value) return 'Unknown time'
@@ -63,21 +178,43 @@ function parseSourceContext(source: string): SourceContext | null {
   try {
     const parsed = new URL(source)
     const path = parsed.pathname || ''
+    
     const isLiveSource = /\/(api\/)?live-tokens$/i.test(path)
-    if (!isLiveSource) return null
-    const projectId = (parsed.searchParams.get('projectId') || '').trim()
-    if (!projectId) return null
-    const environment = (parsed.searchParams.get('environment') || 'dev').trim() || 'dev'
-    const historyPath = path.includes('/api/') ? '/api/version-history' : '/version-history'
-    const historyEndpoint = `${parsed.origin}${historyPath}?projectId=${encodeURIComponent(projectId)}&environment=${encodeURIComponent(environment)}&limit=15`
-    return {
-      sourceUrl: parsed.toString(),
-      sourceHost: parsed.host,
-      relayOrigin: parsed.origin,
-      projectId,
-      environment,
-      historyEndpoint,
+    if (isLiveSource) {
+      const projectId = (parsed.searchParams.get('projectId') || '').trim()
+      if (!projectId) return null
+      const environment = (parsed.searchParams.get('environment') || 'dev').trim() || 'dev'
+      const historyPath = path.includes('/api/') ? '/api/version-history' : '/version-history'
+      const historyEndpoint = `${parsed.origin}${historyPath}?projectId=${encodeURIComponent(projectId)}&environment=${encodeURIComponent(environment)}&limit=15`
+      return {
+        sourceUrl: parsed.toString(),
+        sourceHost: parsed.host,
+        relayOrigin: parsed.origin,
+        projectId,
+        environment,
+        historyEndpoint,
+      }
     }
+    
+    if (parsed.host === 'raw.githubusercontent.com') {
+      const parts = path.split('/').filter(Boolean)
+      if (parts.length >= 4) {
+        const [owner, repo, branch, ...filePath] = parts
+        const file = filePath.join('/')
+        const projectId = `${owner}/${repo}`
+        const historyEndpoint = `https://api.github.com/repos/${owner}/${repo}/commits?path=${file}&sha=${branch}&per_page=15`
+        return {
+          sourceUrl: parsed.toString(),
+          sourceHost: 'github.com',
+          relayOrigin: `https://github.com/${owner}/${repo}`,
+          projectId,
+          environment: branch,
+          historyEndpoint,
+        }
+      }
+    }
+    
+    return null
   } catch {
     return null
   }
@@ -92,7 +229,7 @@ function getComparableRoot(payload: TokensPayload): unknown {
   return payload
 }
 
-function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string, string> = new Map()): Map<string, string> {
+function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string, TokenLeaf> = new Map()): Map<string, TokenLeaf> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return out
   }
@@ -101,8 +238,7 @@ function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string
   if (hasLeafShape) {
     const key = path.join('.')
     if (key) {
-      const value = JSON.stringify(record.value)
-      out.set(key, `${record.type}:${value}`)
+      out.set(key, { type: record.type, value: record.value })
     }
     return out
   }
@@ -110,6 +246,49 @@ function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string
     flattenTokenLeaves(value, [...path, key], out)
   })
   return out
+}
+
+function serializeLeaf(leaf: TokenLeaf): string {
+  return `${leaf.type}:${JSON.stringify(leaf.value)}`
+}
+
+function getAliasTarget(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const match = value.trim().match(/^\{([^{}]+)\}$/)
+  return match?.[1]?.trim() || null
+}
+
+function normalizeAliasCandidates(alias: string): string[] {
+  const trimmed = alias.trim()
+  if (!trimmed) return []
+  return [trimmed, trimmed.replace(/\//g, '.'), trimmed.replace(/\./g, '/')].filter(
+    (candidate, index, list) => candidate && list.indexOf(candidate) === index
+  )
+}
+
+function resolveTokenValue(value: unknown, tokensByPath: Map<string, TokenLeaf>, visited: Set<string> = new Set()): unknown {
+  const alias = getAliasTarget(value)
+  if (!alias) return value
+  const candidates = normalizeAliasCandidates(alias)
+  for (const candidate of candidates) {
+    if (visited.has(candidate)) return value
+    const target = tokensByPath.get(candidate)
+    if (!target) continue
+    visited.add(candidate)
+    return resolveTokenValue(target.value, tokensByPath, visited)
+  }
+  return value
+}
+
+function formatTokenValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
 }
 
 function buildCompareSummary(currentPayload: TokensPayload, selectedPayload: TokensPayload): CompareSummary {
@@ -124,7 +303,8 @@ function buildCompareSummary(currentPayload: TokensPayload, selectedPayload: Tok
       added += 1
       return
     }
-    if (selectedMap.get(key) !== value) {
+    const selectedValue = selectedMap.get(key)
+    if (!selectedValue || serializeLeaf(selectedValue) !== serializeLeaf(value)) {
       changed += 1
     }
   })
@@ -138,12 +318,46 @@ function buildCompareSummary(currentPayload: TokensPayload, selectedPayload: Tok
   return { added, changed, removed }
 }
 
-function normalizeHistoryItems(items: unknown): SnapshotHistoryItem[] {
+function normalizeHistoryItems(items: unknown, sourceUrl?: string): SnapshotHistoryItem[] {
   if (!Array.isArray(items)) return []
+  
+  const isGitHub = sourceUrl?.includes('raw.githubusercontent.com')
+  
   return items
     .map((item, index) => {
       const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : null
       if (!record) return null
+      
+      if (isGitHub) {
+        const sha = typeof record.sha === 'string' ? record.sha : ''
+        const commit = record.commit && typeof record.commit === 'object' ? (record.commit as Record<string, unknown>) : null
+        const message = commit && typeof commit.message === 'string' ? commit.message : ''
+        const author = commit && commit.author && typeof commit.author === 'object' ? (commit.author as Record<string, unknown>) : null
+        const date = author && typeof author.date === 'string' ? author.date : ''
+        const htmlUrl = typeof record.html_url === 'string' ? record.html_url : ''
+        
+        let rawUrl = ''
+        if (sourceUrl && sha) {
+          const parsed = new URL(sourceUrl)
+          const parts = parsed.pathname.split('/')
+          if (parts.length >= 4) {
+            parts[3] = sha
+            rawUrl = `${parsed.origin}${parts.join('/')}`
+          }
+        }
+        
+        return {
+          id: sha || `github-${index}`,
+          versionId: sha ? sha.slice(0, 7) : `commit-${index + 1}`,
+          commitSha: sha,
+          commitMessage: message.split('\n')[0] || 'No commit message',
+          publishedAt: date,
+          rawUrl,
+          previewUrl: '',
+          referenceUrl: htmlUrl,
+        }
+      }
+      
       const commitSha = typeof record.commitSha === 'string' ? record.commitSha : ''
       const versionId =
         typeof record.versionId === 'string' && record.versionId.trim()
@@ -284,7 +498,26 @@ export default function Home() {
   const [historyCompare, setHistoryCompare] = useState<CompareSummary>({ added: 0, changed: 0, removed: 0 })
   const [historyStatus, setHistoryStatus] = useState('')
   const [copiedId, setCopiedId] = useState('')
+  const [preferredPm, setPreferredPm] = useState<PackageManagerId>('npm')
+  const [conversionVariant, setConversionVariant] = useState<ConversionVariant>('a')
+  const [isHistoryHintDismissed, setIsHistoryHintDismissed] = useState(false)
+  const [snapshotMetrics, setSnapshotMetrics] = useState<SnapshotMetrics>(createEmptySnapshotMetrics())
   const hasInstallIntent = isSharedPreview
+  const snapshotActionsLocked = hasInstallIntent
+  const lockContent = useMemo(() => getLockContent(conversionVariant), [conversionVariant])
+  const preferredInstallCommand = useMemo(() => getPreferredInstallCommand(preferredPm), [preferredPm])
+  const quickStartCommandsOrdered = useMemo(() => {
+    const preferred = QUICK_START_COMMANDS.find((item) => item.id === preferredPm)
+    const rest = QUICK_START_COMMANDS.filter((item) => item.id !== preferredPm)
+    return preferred ? [preferred, ...rest] : QUICK_START_COMMANDS
+  }, [preferredPm])
+  const renderedHistoryItems = useMemo(() => historyItems.slice(0, SNAPSHOT_HISTORY_RENDER_CAP), [historyItems])
+  const fallbackSourceContext = useMemo(() => {
+    const source = getSourceFromQuery()
+    if (!source) return null
+    return parseSourceContext(source)
+  }, [])
+  const effectiveSourceContext = sourceContext || fallbackSourceContext
   const selectedHistoryItem = useMemo(
     () => historyItems.find((item) => item.id === selectedHistoryId) || null,
     [historyItems, selectedHistoryId]
@@ -358,6 +591,14 @@ export default function Home() {
   }, [isQuickStartOpen, isAdvancedInfoOpen, isHistoryOpen])
 
   useEffect(() => {
+    setPreferredPm(getPreferredPackageManager())
+    setConversionVariant(getConversionVariant())
+    if (typeof window === 'undefined') return
+    setIsHistoryHintDismissed(window.localStorage.getItem(SNAPSHOT_ONBOARDING_KEY) === '1')
+    setSnapshotMetrics(readSnapshotMetrics())
+  }, [])
+
+  useEffect(() => {
     if (!copiedId) return
     const timeout = window.setTimeout(() => setCopiedId(''), 1800)
     return () => window.clearTimeout(timeout)
@@ -414,7 +655,10 @@ export default function Home() {
         throw new Error(`History request failed (${response.status})`)
       }
       const payload = await response.json()
-      const items = normalizeHistoryItems((payload as { items?: unknown }).items)
+      const items = normalizeHistoryItems(
+        sourceContext?.sourceHost === 'github.com' ? payload : (payload as { items?: unknown }).items,
+        sourceContext?.sourceUrl
+      )
       setHistoryItems(items)
       if (!items.length) {
         setSelectedHistoryId('')
@@ -433,6 +677,20 @@ export default function Home() {
     }
   }
 
+  function bumpSnapshotMetric(metricId: SnapshotMetricId) {
+    setSnapshotMetrics((prev) => {
+      const next = { ...prev, [metricId]: prev[metricId] + 1 }
+      writeSnapshotMetrics(next)
+      return next
+    })
+  }
+
+  function resetSnapshotMetrics() {
+    const next = createEmptySnapshotMetrics()
+    setSnapshotMetrics(next)
+    writeSnapshotMetrics(next)
+  }
+
   async function copyText(text: string, id: string) {
     try {
       if (navigator.clipboard?.writeText) {
@@ -448,6 +706,13 @@ export default function Home() {
         document.body.removeChild(textarea)
       }
       setCopiedId(id)
+      if (id === 'npm' || id === 'pnpm' || id === 'yarn') {
+        setPreferredPm(id)
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(SNAPSHOT_PM_KEY, id)
+        }
+      }
+      bumpSnapshotMetric('quickstart_copy')
       trackEvent('tokvista_quickstart_copy', { type: id, source: installIntentLabel })
     } catch {
       setCopiedId('')
@@ -455,6 +720,7 @@ export default function Home() {
   }
 
   function handleInstallClick() {
+    bumpSnapshotMetric('install_click')
     trackEvent('tokvista_install_click', { source: installIntentLabel })
   }
 
@@ -462,11 +728,30 @@ export default function Home() {
     trackEvent('tokvista_docs_click', { source: installIntentLabel })
   }
 
-  function openQuickStart(origin: 'header' | 'advanced_info' | 'sandbox_lock') {
+  function openQuickStart(origin: 'header' | 'advanced_info' | 'sandbox_lock' | 'snapshot_history_lock' | 'history_hint') {
     setIsAdvancedInfoOpen(false)
     setIsHistoryOpen(false)
     setIsQuickStartOpen(true)
     trackEvent('tokvista_quickstart_open', { origin, source: installIntentLabel })
+  }
+
+  function dismissHistoryHint() {
+    setIsHistoryHintDismissed(true)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SNAPSHOT_ONBOARDING_KEY, '1')
+    }
+    trackEvent('tokvista_snapshot_hint_dismiss', { source: installIntentLabel })
+  }
+
+  async function copyPreferredInstallCommand() {
+    await copyText(preferredInstallCommand, preferredPm)
+    bumpSnapshotMetric('install_command_copy')
+    trackEvent('tokvista_snapshot_install_command_copy', { source: installIntentLabel, pm: preferredPm })
+  }
+
+  function refreshAfterInstall() {
+    trackEvent('tokvista_snapshot_install_refresh', { source: installIntentLabel })
+    window.location.reload()
   }
 
   function toggleAdvancedInfo() {
@@ -484,6 +769,7 @@ export default function Home() {
     setIsAdvancedInfoOpen(false)
     setIsQuickStartOpen(false)
     setIsHistoryOpen(true)
+    bumpSnapshotMetric('history_open')
     trackEvent('tokvista_snapshot_history_open', { source: installIntentLabel })
     if (!historyItems.length || historyError) {
       void loadSnapshotHistory(true)
@@ -542,6 +828,214 @@ export default function Home() {
     }
   }
 
+  function renderVisualDiff(currentTokens: TokensPayload, oldTokens: TokensPayload) {
+    const currentMap = flattenTokenLeaves(getComparableRoot(currentTokens))
+    const oldMap = flattenTokenLeaves(getComparableRoot(oldTokens))
+    const changes: Array<{
+      name: string
+      type: string
+      oldValue: string
+      newValue: string
+      changeType: 'added' | 'changed' | 'removed'
+      group: string
+    }> = []
+
+    currentMap.forEach((value, key) => {
+      if (!oldMap.has(key)) {
+        const resolvedNew = resolveTokenValue(value.value, currentMap)
+        changes.push({
+          name: key,
+          type: value.type,
+          oldValue: '',
+          newValue: formatTokenValue(resolvedNew),
+          changeType: 'added',
+          group: groupKeyFromTokenPath(key),
+        })
+      } else {
+        const oldLeaf = oldMap.get(key)
+        if (oldLeaf && serializeLeaf(oldLeaf) !== serializeLeaf(value)) {
+          const resolvedOld = resolveTokenValue(oldLeaf.value, oldMap)
+          const resolvedNew = resolveTokenValue(value.value, currentMap)
+          changes.push({
+            name: key,
+            type: value.type,
+            oldValue: formatTokenValue(resolvedOld),
+            newValue: formatTokenValue(resolvedNew),
+            changeType: 'changed',
+            group: groupKeyFromTokenPath(key),
+          })
+        }
+      }
+    })
+
+    oldMap.forEach((value, key) => {
+      if (!currentMap.has(key)) {
+        const resolvedOld = resolveTokenValue(value.value, oldMap)
+        changes.push({
+          name: key,
+          type: value.type,
+          oldValue: formatTokenValue(resolvedOld),
+          newValue: '',
+          changeType: 'removed',
+          group: groupKeyFromTokenPath(key),
+        })
+      }
+    })
+
+    const orderedChanges = [...changes].sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
+    const visibleCount = snapshotActionsLocked ? SNAPSHOT_TEASER_DIFF_LIMIT : SNAPSHOT_FULL_DIFF_LIMIT
+    const limitedChanges = orderedChanges.slice(0, visibleCount)
+    const hiddenCount = Math.max(orderedChanges.length - limitedChanges.length, 0)
+
+    const groups = limitedChanges.reduce((acc, change) => {
+      if (!acc[change.group]) acc[change.group] = []
+      acc[change.group].push(change)
+      return acc
+    }, {} as Record<string, typeof limitedChanges>)
+
+    return (
+      <div className={styles.visualDiffSection}>
+        <div className={styles.visualDiffTitle}>Visual Comparison ({orderedChanges.length} changes)</div>
+        <div className={styles.visualDiffGrid}>
+          {limitedChanges.length === 0 ? (
+            <div className={styles.diffEmpty}>No visual changes detected</div>
+          ) : (
+            Object.entries(groups).map(([groupName, groupItems]) => (
+              <section key={groupName} className={styles.diffGroup}>
+                <div className={styles.diffGroupTitle}>{groupName}</div>
+                {groupItems.map((change, idx) => (
+                  <div
+                    key={`${change.name}-${idx}`}
+                    className={`${styles.diffCard} ${
+                      change.changeType === 'added'
+                        ? styles.diffCardAdded
+                        : change.changeType === 'removed'
+                          ? styles.diffCardRemoved
+                          : styles.diffCardChanged
+                    }`}
+                  >
+                    <div className={styles.diffCardHeader}>
+                      <div className={styles.diffCardName}>{change.name}</div>
+                      <div className={styles.diffCardType}>{change.type}</div>
+                    </div>
+                    <div className={styles.diffCardBody}>
+                      {change.type === 'color' ? (
+                        <>
+                          {change.oldValue && (
+                            <div className={`${styles.diffValue} ${snapshotActionsLocked ? styles.diffValueObfuscated : ''}`}>
+                              <div className={styles.diffLabel}>Old</div>
+                              <div className={snapshotActionsLocked ? styles.diffValueMask : ''}>
+                                <div
+                                  className={`${styles.colorSwatch} ${!getRenderableColor(change.oldValue) ? styles.colorSwatchInvalid : ''}`}
+                                  style={{ background: getRenderableColor(change.oldValue) || undefined }}
+                                />
+                                <div className={styles.colorValue}>{parseColorValue(change.oldValue)}</div>
+                              </div>
+                            </div>
+                          )}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.newValue && (
+                            <div className={styles.diffValue}>
+                              <div className={styles.diffLabel}>New</div>
+                              <div>
+                                <div
+                                  className={`${styles.colorSwatch} ${!getRenderableColor(change.newValue) ? styles.colorSwatchInvalid : ''}`}
+                                  style={{ background: getRenderableColor(change.newValue) || undefined }}
+                                />
+                                <div className={styles.colorValue}>{parseColorValue(change.newValue)}</div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : change.type === 'number' || change.type === 'dimension' || change.type === 'spacing' ? (
+                        <>
+                          {change.oldValue && (
+                            <div className={`${styles.diffValue} ${snapshotActionsLocked ? styles.diffValueObfuscated : ''}`}>
+                              <div className={styles.diffLabel}>Old</div>
+                              <div
+                                className={`${styles.spacingBar} ${snapshotActionsLocked ? styles.diffValueMask : ''}`}
+                                style={{ width: `${Math.min(parseFloat(change.oldValue) * 2, 200)}px` }}
+                              >
+                                {change.oldValue}
+                              </div>
+                            </div>
+                          )}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.newValue && (
+                            <div className={styles.diffValue}>
+                              <div className={styles.diffLabel}>New</div>
+                              <div className={styles.spacingBar} style={{ width: `${Math.min(parseFloat(change.newValue) * 2, 200)}px` }}>
+                                {change.newValue}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {change.oldValue && (
+                            <div className={`${styles.diffValue} ${snapshotActionsLocked ? styles.diffValueObfuscated : ''}`}>
+                              <div className={styles.diffLabel}>Old</div>
+                              <div className={`${styles.typographySample} ${snapshotActionsLocked ? styles.diffValueMask : ''}`}>
+                                Sample Text
+                                <div className={styles.typographyValue}>{change.oldValue}</div>
+                              </div>
+                            </div>
+                          )}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.newValue && (
+                            <div className={styles.diffValue}>
+                              <div className={styles.diffLabel}>New</div>
+                              <div className={styles.typographySample}>
+                                Sample Text
+                                <div className={styles.typographyValue}>{change.newValue}</div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            ))
+          )}
+          {snapshotActionsLocked && hiddenCount > 0 ? (
+            <button
+              type="button"
+              className={styles.diffLockedTeaser}
+              onClick={() => openQuickStart('snapshot_history_lock')}
+            >
+              +{hiddenCount} more changes in full package
+            </button>
+          ) : null}
+        </div>
+        {!snapshotActionsLocked && orderedChanges.length > SNAPSHOT_FULL_DIFF_LIMIT && (
+          <div className={styles.diffEmpty} style={{ marginTop: '10px' }}>
+            Showing {SNAPSHOT_FULL_DIFF_LIMIT} of {orderedChanges.length} changes
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function parseColorValue(value: string): string {
+    try {
+      const parsed = JSON.parse(value)
+      return typeof parsed === 'string' ? parsed : value
+    } catch {
+      return value
+    }
+  }
+
+  function getRenderableColor(value: string): string {
+    const normalized = parseColorValue(value).trim()
+    if (!normalized) return ''
+    if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+      return CSS.supports('color', normalized) ? normalized : ''
+    }
+    return normalized
+  }
+
   return (
     <main>
       {loadError ? (
@@ -553,6 +1047,13 @@ export default function Home() {
         tokens={tokens}
         title="Tokvista Demo"
         subtitle={subtitle}
+        snapshotHistory={{
+          enabled: true,
+          accessMode: hasInstallIntent ? 'preview' : 'full',
+          historyEndpoint: effectiveSourceContext?.historyEndpoint || '',
+          sourceUrl: effectiveSourceContext?.sourceUrl || getSourceFromQuery(),
+          title: 'Snapshot History',
+        }}
         playgroundLock={
           hasInstallIntent
             ? {
@@ -595,19 +1096,6 @@ export default function Home() {
               >
                 Docs
               </a>
-              <button
-                type="button"
-                title={
-                  historyAvailable
-                    ? 'Open snapshot history and compare versions'
-                    : 'Snapshot history is available only for live relay links'
-                }
-                disabled={!historyAvailable}
-                className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary} ${!historyAvailable ? styles.sharedHeaderActionDisabled : ''}`}
-                onClick={openHistoryPanel}
-              >
-                Snapshot History
-              </button>
               <button
                 type="button"
                 className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
@@ -698,26 +1186,89 @@ export default function Home() {
 
               {historyError ? <div className={styles.historyError}>{historyError}</div> : null}
               {historyStatus ? <div className={styles.historyStatus}>{historyStatus}</div> : null}
+              {snapshotActionsLocked && !isHistoryHintDismissed ? (
+                <div className={styles.historyHint}>
+                  <p>Preview mode lets you inspect recent changes. Install tokvista to unlock full history and restore actions.</p>
+                  <div className={styles.historyHintActions}>
+                    <button
+                      type="button"
+                      className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionPrimary}`}
+                      onClick={() => openQuickStart('history_hint')}
+                    >
+                      Open install steps
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                      onClick={dismissHistoryHint}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {snapshotActionsLocked ? (
+                <div className={styles.historyMetrics}>
+                  <div className={styles.historyMetricsHeader}>
+                    <strong>Local Conversion Dashboard</strong>
+                    <button
+                      type="button"
+                      className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                      onClick={resetSnapshotMetrics}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className={styles.historyMetricsGrid}>
+                    {SNAPSHOT_METRIC_LABELS.map((metric) => (
+                      <div key={metric.id} className={styles.historyMetricCard}>
+                        <span>{metric.label}</span>
+                        <strong>{snapshotMetrics[metric.id]}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className={styles.historyLayout}>
                 <div className={styles.historyList}>
                   {!historyItems.length && !historyLoading ? (
                     <div className={styles.historyEmpty}>No versions found yet.</div>
                   ) : null}
-                  {historyItems.map((item) => (
-                    <button
-                      type="button"
-                      key={item.id}
-                      className={`${styles.historyItem} ${item.id === selectedHistoryId ? styles.historyItemActive : ''}`}
-                      onClick={() => void loadSnapshotVersion(item)}
-                    >
-                      <div className={styles.historyItemHead}>
-                        <span className={styles.historyItemVersion}>{item.versionId}</span>
-                        <span className={styles.historyItemTime}>{formatLocalTimestamp(item.publishedAt)}</span>
-                      </div>
-                      <div className={styles.historyItemMessage}>{item.commitMessage || 'No commit message'}</div>
-                    </button>
-                  ))}
+                  {renderedHistoryItems.map((item, index) => {
+                    const isSelectionLocked = snapshotActionsLocked && index >= SNAPSHOT_UNLOCKED_ITEMS
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        className={`${styles.historyItem} ${item.id === selectedHistoryId ? styles.historyItemActive : ''} ${
+                          isSelectionLocked ? styles.historyItemDisabled : ''
+                        }`}
+                        onClick={() => {
+                          if (isSelectionLocked) {
+                            bumpSnapshotMetric('locked_item_click')
+                            trackEvent('tokvista_snapshot_locked_item_click', { source: installIntentLabel, index })
+                            void openQuickStart('snapshot_history_lock')
+                            return
+                          }
+                          void loadSnapshotVersion(item)
+                        }}
+                        title={isSelectionLocked ? 'Install tokvista in your project to unlock this snapshot.' : undefined}
+                        aria-disabled={isSelectionLocked}
+                      >
+                        <div className={styles.historyItemHead}>
+                          <span className={styles.historyItemVersion}>{item.versionId}</span>
+                          <span className={styles.historyItemTime}>{formatLocalTimestamp(item.publishedAt)}</span>
+                        </div>
+                        {isSelectionLocked ? <div className={styles.historyItemLockedTag}>Locked in preview</div> : null}
+                      </button>
+                    )
+                  })}
+                  {historyItems.length > SNAPSHOT_HISTORY_RENDER_CAP ? (
+                    <div className={styles.historyListGuardrail}>
+                      Showing first {SNAPSHOT_HISTORY_RENDER_CAP} snapshots for preview performance.
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className={styles.historyDetail}>
@@ -735,33 +1286,79 @@ export default function Home() {
                           -{historyCompare.removed} Removed
                         </span>
                       </div>
+                      {selectedSnapshotTokens && renderVisualDiff(tokens, selectedSnapshotTokens)}
+                      {snapshotActionsLocked ? (
+                        <div className={styles.historyLockedNotice}>
+                          <p>{lockContent.message}</p>
+                          <div className={styles.historyLockedActions}>
+                            <button
+                              type="button"
+                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                              onClick={() => void copyPreferredInstallCommand()}
+                            >
+                              {copiedId === preferredPm ? 'Copied command' : `Copy ${preferredPm} install`}
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionPrimary}`}
+                              onClick={() => {
+                                bumpSnapshotMetric('unlock_cta_click')
+                                trackEvent('tokvista_snapshot_unlock_cta_click', { source: installIntentLabel, variant: conversionVariant })
+                                openQuickStart('snapshot_history_lock')
+                              }}
+                            >
+                              {lockContent.cta}
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                              onClick={refreshAfterInstall}
+                            >
+                              I installed, refresh
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                       <div className={styles.historyDetailLinks}>
                         <button
                           type="button"
-                          className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                          className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary} ${snapshotActionsLocked ? styles.lockedFeatureButton : ''}`}
                           onClick={openOldSnapshot}
+                          disabled={snapshotActionsLocked}
                         >
                           Open old snapshot
                         </button>
                         <button
                           type="button"
-                          className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionPrimary}`}
+                          className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionPrimary} ${snapshotActionsLocked ? styles.lockedFeatureButton : ''}`}
                           onClick={() => void restoreInFigma()}
+                          disabled={snapshotActionsLocked}
                         >
                           Restore in Figma
                         </button>
                         {selectedHistoryItem.referenceUrl ? (
-                          <a
-                            href={selectedHistoryItem.referenceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                          <button
+                            type="button"
+                            className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary} ${snapshotActionsLocked ? styles.lockedFeatureButton : ''}`}
+                            onClick={() => window.open(selectedHistoryItem.referenceUrl, '_blank', 'noopener,noreferrer')}
+                            disabled={snapshotActionsLocked}
                           >
                             Open commit
-                          </a>
+                          </button>
                         ) : null}
+                        <button
+                          type="button"
+                          className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary} ${styles.lockedFeatureButton}`}
+                          onClick={() => {
+                            trackEvent('tokvista_snapshot_compare_range_click', { source: installIntentLabel })
+                            void openQuickStart('snapshot_history_lock')
+                          }}
+                          title={SNAPSHOT_COMPARE_RANGE_DISABLED_MESSAGE}
+                        >
+                          Compare range (Locked)
+                        </button>
                       </div>
-                      {selectedHistoryRestoreUrl ? (
+                      {selectedHistoryRestoreUrl && !snapshotActionsLocked ? (
                         <div className={styles.historyRestoreBox}>
                           <div className={styles.historyRestoreLabel}>Restore URL (paste in plugin Import from URL)</div>
                           <div className={styles.historyRestoreRow}>
@@ -774,13 +1371,16 @@ export default function Home() {
                             />
                             <button
                               type="button"
-                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+                              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary} ${styles.lockedFeatureButton}`}
                               onClick={() => void copyRestoreUrl()}
+                              disabled={snapshotActionsLocked}
                             >
                               Copy URL
                             </button>
                           </div>
                         </div>
+                      ) : snapshotActionsLocked ? (
+                        <div className={styles.historyRestoreMissing}>{lockContent.message}</div>
                       ) : (
                         <div className={styles.historyRestoreMissing}>This snapshot has no raw tokens URL to restore.</div>
                       )}
@@ -821,9 +1421,9 @@ export default function Home() {
             </header>
 
             <div className={styles.quickStartSection}>
-              <div className={styles.quickStartLabel}>Install</div>
+              <div className={styles.quickStartLabel}>Install (recommended: {preferredPm})</div>
               <div className={styles.quickStartGrid}>
-                {QUICK_START_COMMANDS.map((item) => (
+                {quickStartCommandsOrdered.map((item) => (
                   <button
                     type="button"
                     key={item.id}

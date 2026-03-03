@@ -10,7 +10,7 @@
 
 Visualize colors, spacing, typography, and component tokens with zero configuration.
 
-[Live Demo](https://nibin-org.github.io/tokvista/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokvista/issues)
+[Live Demo](https://tokvista-demo.vercel.app/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokvista/issues)
 
 </div>
 
@@ -21,8 +21,9 @@ Visualize colors, spacing, typography, and component tokens with zero configurat
 Design token documentation is often static and hard to scan. **Tokvista** gives you:
 
 - Beautiful visuals for colors, spacing, sizes, radius, and typography
+- **Global format selector** - Switch between CSS Variables, SCSS, and Tailwind formats
 - Instant search with `Cmd+K` / `Ctrl+K`
-- Copy-ready CSS variables and resolved values
+- One-click copy with format-aware variable names
 - Semantic + component token views with aliases resolved
 - Generic **All Tokens** view for non-standard JSON structures
 - Built-in dark mode
@@ -158,6 +159,9 @@ For package users, run Tokvista with your own exported `tokens.json` file.
 
 ## What You Get
 
+### Global Format Selector
+Switch between CSS Variables (`var(--token)`), SCSS Variables (`$token`), and Tailwind Classes (`token`) with a single click. Your preference is saved and applied across all token displays and copy operations.
+
 ### Foundation Tokens
 Visualize base tokens like colors, spacing, sizes, radius, and typography.
 
@@ -180,7 +184,7 @@ Even when your file does not follow `Foundation/Value` or `Semantic/Value`, Tokv
 
 ## Demo
 
-Live demo: https://nibin-org.github.io/tokvista/
+Live demo: https://tokvista-demo.vercel.app/
 
 Run it locally: see Local Development below.
 
@@ -239,6 +243,7 @@ Need a full setup guide? See **[GUIDE.md](./GUIDE.md)**.
 | `fontFamilyMono` | `string` | `undefined` | Override the UI mono font-family (CSS value). Load the font in your app. |
 | `loadDefaultFonts` | `boolean` | `true` | When `true`, loads Inter + JetBrains Mono from Google Fonts. Set `false` to use only your app fonts. |
 | `onTokenClick` | `(token) => void` | `undefined` | Callback when a token is clicked |
+| `snapshotHistory` | `SnapshotHistoryOptions` | `undefined` | Enable built-in snapshot history panel. Use `accessMode: "preview"` for locked teaser mode and `"full"` for full access. |
 
 ### Custom Fonts
 
@@ -265,13 +270,29 @@ Use these to build custom layouts:
 
 Each accepts `tokens` and optional `title`.
 
+### Snapshot History
+
+```tsx
+<TokenDocumentation
+  tokens={tokens}
+  snapshotHistory={{
+    enabled: true,
+    accessMode: 'full', // or 'preview'
+    historyEndpoint: 'https://your-relay.example.com/version-history?...',
+    sourceUrl: 'https://raw.githubusercontent.com/org/repo/main/tokens.json',
+  }}
+/>
+```
+
 ---
 
 ## Search and Copy
 
-- Search across token names and values
+- Search across token names and values with `Cmd+K` / `Ctrl+K`
 - Keyboard navigation with Enter to focus
-- Copy action returns `var(--token)` when available
+- **Format-aware copying** - Choose between CSS Variables, SCSS, or Tailwind
+- Variable names display in your selected format
+- Preference persists across sessions
 
 ---
 
@@ -307,7 +328,7 @@ Note: production demo is served under `/tokvista/`.
 
 ## Resources
 
-- [Live Demo](https://nibin-org.github.io/tokvista/)
+- [Live Demo](https://tokvista-demo.vercel.app/)
 - [Figma Setup Guide](./GUIDE.md)
 - [GitHub Repository](https://github.com/nibin-org/tokvista)
 - [Issue Tracker](https://github.com/nibin-org/tokvista/issues)

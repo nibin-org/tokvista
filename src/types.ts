@@ -86,6 +86,7 @@ export interface TokenDocumentationProps {
   loadDefaultFonts?: boolean;
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
   playgroundLock?: PlaygroundLockOptions;
+  snapshotHistory?: SnapshotHistoryOptions;
 }
 
 export interface PlaygroundLockOptions {
@@ -94,6 +95,18 @@ export interface PlaygroundLockOptions {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+}
+
+export type SnapshotAccessMode = 'preview' | 'full';
+
+export interface SnapshotHistoryOptions {
+  enabled: boolean;
+  accessMode?: SnapshotAccessMode;
+  historyEndpoint?: string;
+  sourceUrl?: string;
+  title?: string;
+  maxPreviewSnapshots?: number;
+  maxPreviewDiffs?: number;
 }
 
 export interface ColorDisplayProps {
