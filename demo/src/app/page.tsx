@@ -238,7 +238,7 @@ function flattenTokenLeaves(input: unknown, path: string[] = [], out: Map<string
   if (hasLeafShape) {
     const key = path.join('.')
     if (key) {
-      out.set(key, { type: record.type, value: record.value })
+      out.set(key, { type: record.type as string, value: record.value })
     }
     return out
   }
@@ -1106,7 +1106,7 @@ export default function Home() {
               <button
                 type="button"
                 title="Advanced export is available after installing tokvista in your project."
-                aria-expanded={isAdvancedInfoOpen}
+                aria-expanded={isAdvancedInfoOpen ? 'true' : 'false'}
                 className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionDisabled}`}
                 onClick={toggleAdvancedInfo}
               >
@@ -1254,7 +1254,7 @@ export default function Home() {
                           void loadSnapshotVersion(item)
                         }}
                         title={isSelectionLocked ? 'Install tokvista in your project to unlock this snapshot.' : undefined}
-                        aria-disabled={isSelectionLocked}
+                        aria-disabled={isSelectionLocked ? 'true' : 'false'}
                       >
                         <div className={styles.historyItemHead}>
                           <span className={styles.historyItemVersion}>{item.versionId}</span>
