@@ -895,13 +895,13 @@ export function TokenDocumentation({
         }
     }
 
-    async function loadSnapshotHistory(force = false) {
+    async function loadSnapshotHistory(force = false): Promise<SnapshotHistoryItem[]> {
         const endpoint = snapshotHistory?.historyEndpoint || '';
         if (!endpoint) {
             setSnapshotError('Snapshot history endpoint is not configured.');
-            return;
+            return [];
         }
-        if (snapshotLoading && !force) return;
+        if (snapshotLoading && !force) return snapshotItems;
         setSnapshotLoading(true);
         setSnapshotError('');
         setSnapshotStatus('');
@@ -921,7 +921,7 @@ export function TokenDocumentation({
                 setSnapshotBaseTokens(null);
                 setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
                 setSnapshotStatus('No snapshot history available yet.');
-                return;
+                return [];
             }
             const selectedFromState = items.find((item) => item.id === selectedSnapshotId);
             const selected = selectedFromState || (items.length > 1 ? items[1] : items[0]);
@@ -929,11 +929,25 @@ export function TokenDocumentation({
             if (!selectedFromState && items.length === 1) {
                 setSnapshotStatus('Only one snapshot found. Add another commit touching this token file to compare changes.');
             }
+            return items;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setSnapshotError(message);
+            return [];
         } finally {
             setSnapshotLoading(false);
+        }
+    }
+
+    async function handleSnapshotRefresh() {
+        if (snapshotLoading) return;
+        const latestItems = await loadSnapshotHistory(true);
+        const preferredSourceUrl = normalizeHttpUrl(latestItems[0]?.rawUrl || '');
+        try {
+            await snapshotHistory?.onRefreshSource?.({ preferredSourceUrl });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setSnapshotStatus(`Source refresh failed: ${message}`);
         }
     }
 
@@ -1377,7 +1391,7 @@ export function TokenDocumentation({
                                 <p>{snapshotActionsLocked ? 'Preview mode (limited)' : 'Full access mode'}</p>
                             </div>
                             <div className="ftd-snapshot-actions">
-                                <button type="button" className="ftd-search-button" onClick={() => void loadSnapshotHistory(true)} disabled={snapshotLoading}>
+                                <button type="button" className="ftd-search-button" onClick={() => void handleSnapshotRefresh()} disabled={snapshotLoading}>
                                     {snapshotLoading ? 'Loading...' : 'Refresh'}
                                 </button>
                                 <button type="button" className="ftd-search-button" onClick={() => setSnapshotOpen(false)}>

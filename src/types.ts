@@ -104,6 +104,7 @@ export interface SnapshotHistoryOptions {
   accessMode?: SnapshotAccessMode;
   historyEndpoint?: string;
   sourceUrl?: string;
+  onRefreshSource?: (options?: { preferredSourceUrl?: string }) => void | Promise<void>;
   title?: string;
   maxPreviewSnapshots?: number;
   maxPreviewDiffs?: number;

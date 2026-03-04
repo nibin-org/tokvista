@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TokenDocumentation, buildGitHubHistoryEndpoint } from 'tokvista'
 import 'tokvista/styles.css'
-import defaultTokens from '../../../tokens.json' // Real tokens from Figma Token Studio
 import styles from './page.module.css'
 
 type TokensPayload = Record<string, unknown>
@@ -61,7 +60,7 @@ const SNAPSHOT_TEASER_DIFF_LIMIT = 5
 const SNAPSHOT_FULL_DIFF_LIMIT = 15
 const SNAPSHOT_HISTORY_RENDER_CAP = 120
 const SNAPSHOT_COMPARE_RANGE_DISABLED_MESSAGE = 'Compare range unlocks after installing tokvista in your project.'
-const SOURCE_SYNC_INTERVAL_MS = 15000
+const SOURCE_REFRESH_LOCK_MS = 30000
 
 type PackageManagerId = (typeof QUICK_START_COMMANDS)[number]['id']
 type ConversionVariant = 'a' | 'b'
@@ -406,6 +405,16 @@ function normalizeHttpUrl(value: string): string {
   }
 }
 
+function normalizeEventEndpoint(value: string): string {
+  const trimmed = (value || '').trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('/')) {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.origin}${trimmed}`
+  }
+  return normalizeHttpUrl(trimmed)
+}
+
 function getRestorableUrl(item: SnapshotHistoryItem | null): string {
   if (!item) return ''
   const rawUrl = normalizeHttpUrl(item.rawUrl)
@@ -469,6 +478,8 @@ function getSourceFromQuery(): string {
   return normalizeHttpUrl(source)
 }
 
+const DEFAULT_TOKENS: TokensPayload = {}
+
 function getResolvedSource(): string {
   const sourceFromQuery = getSourceFromQuery()
   if (sourceFromQuery) return sourceFromQuery
@@ -488,7 +499,7 @@ function withCacheBust(url: string): string {
 }
 
 export default function Home() {
-  const [tokens, setTokens] = useState<TokensPayload>(defaultTokens as TokensPayload)
+  const [tokens, setTokens] = useState<TokensPayload>(DEFAULT_TOKENS)
   const [subtitle, setSubtitle] = useState(
     `Real tokens from Figma Token Studio - Version ${process.env.NEXT_PUBLIC_PACKAGE_VERSION}`
   )
@@ -514,6 +525,8 @@ export default function Home() {
   const [conversionVariant, setConversionVariant] = useState<ConversionVariant>('a')
   const [isHistoryHintDismissed, setIsHistoryHintDismissed] = useState(false)
   const [snapshotMetrics, setSnapshotMetrics] = useState<SnapshotMetrics>(createEmptySnapshotMetrics())
+  const latestSourceRequestRef = useRef(0)
+  const sourceRefreshLockUntilRef = useRef(0)
   const sourceFromQuery = useMemo(() => getSourceFromQuery(), [])
   const resolvedSource = useMemo(() => sourceFromQuery || getResolvedSource(), [sourceFromQuery])
   const fallbackSourceContext = useMemo(() => {
@@ -542,11 +555,33 @@ export default function Home() {
   )
   const hasConfiguredSource = Boolean(resolvedSource)
   const shouldBlockDocumentation = hasConfiguredSource && Boolean(loadError)
+  const eventsEndpoint = useMemo(
+    () => normalizeEventEndpoint(process.env.NEXT_PUBLIC_DEMO_EVENTS_ENDPOINT || ''),
+    []
+  )
   const subtitleWithSync = useMemo(() => {
     if (!hasConfiguredSource || !sourceLastSyncedAt) return subtitle
     const syncedAt = new Date(sourceLastSyncedAt).toLocaleTimeString()
-    return `${subtitle} · Last sync ${syncedAt} · Auto refresh ${Math.round(SOURCE_SYNC_INTERVAL_MS / 1000)}s`
+    return `${subtitle} · Last sync ${syncedAt}`
   }, [hasConfiguredSource, sourceLastSyncedAt, subtitle])
+
+  async function resolveLatestSourceForLoad(source: string): Promise<string> {
+    const context = parseSourceContext(source)
+    if (!context?.historyEndpoint) return source
+    try {
+      const response = await fetch(withCacheBust(context.historyEndpoint), { cache: 'no-store' })
+      if (!response.ok) return source
+      const payload = await response.json()
+      const items = normalizeHistoryItems(
+        context.sourceHost === 'github.com' ? payload : (payload as { items?: unknown }).items,
+        context.sourceUrl
+      )
+      const latestRaw = normalizeHttpUrl(items[0]?.rawUrl || '')
+      return latestRaw || source
+    } catch {
+      return source
+    }
+  }
 
   useEffect(() => {
     let disposed = false
@@ -586,9 +621,15 @@ export default function Home() {
 
     async function loadFromSource() {
       if (inFlight) return
+      if (!sourceFromQuery && sourceRefreshLockUntilRef.current > Date.now()) {
+        return
+      }
       inFlight = true
+      const requestId = ++latestSourceRequestRef.current
       try {
-        const response = await fetch(withCacheBust(source), { cache: 'no-store' })
+        const sourceToLoad = await resolveLatestSourceForLoad(source)
+        if (disposed || requestId !== latestSourceRequestRef.current) return
+        const response = await fetch(withCacheBust(sourceToLoad), { cache: 'no-store' })
         if (!response.ok) {
           throw new Error(`Failed to load preview tokens (${response.status})`)
         }
@@ -596,9 +637,9 @@ export default function Home() {
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
           throw new Error('Preview source returned invalid token JSON')
         }
-        if (disposed) return
+        if (disposed || requestId !== latestSourceRequestRef.current) return
         setTokens(parsed as TokensPayload)
-        const parsedSource = new URL(source)
+        const parsedSource = new URL(sourceToLoad)
         const host = parsedSource.host
         if (sourceFromQuery) {
           setSubtitle(`Shared preview from ${host}`)
@@ -608,7 +649,7 @@ export default function Home() {
         setLoadError('')
         setSourceLastSyncedAt(Date.now())
       } catch (error) {
-        if (disposed) return
+        if (disposed || requestId !== latestSourceRequestRef.current) return
         const message = error instanceof Error ? error.message : String(error)
         setTokens({})
         setLoadError(message)
@@ -618,14 +659,84 @@ export default function Home() {
     }
 
     void loadFromSource()
-    const syncTimer = window.setInterval(() => {
-      void loadFromSource()
-    }, SOURCE_SYNC_INTERVAL_MS)
     return () => {
       disposed = true
-      window.clearInterval(syncTimer)
     }
   }, [resolvedSource, sourceFromQuery])
+
+  const refreshSourceNow = useCallback(async (options?: { preferredSourceUrl?: string }) => {
+    const preferredSource = normalizeHttpUrl(options?.preferredSourceUrl || '')
+    const source = preferredSource || resolvedSource
+    if (!source) return
+
+    const requestId = ++latestSourceRequestRef.current
+    const response = await fetch(withCacheBust(source), { cache: 'no-store' })
+    if (!response.ok) {
+      throw new Error(`Failed to load preview tokens (${response.status})`)
+    }
+    const parsed = await response.json()
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Preview source returned invalid token JSON')
+    }
+    if (requestId !== latestSourceRequestRef.current) return
+
+    setTokens(parsed as TokensPayload)
+    if (sourceFromQuery) {
+      const host = new URL(source).host
+      setSubtitle(`Shared preview from ${host}`)
+      setSharedSourceLabel(host)
+      setIsSharedPreview(true)
+    }
+    if (preferredSource && preferredSource !== resolvedSource) {
+      // Keep commit-based update visible; avoid stale branch overwrite immediately after.
+      sourceRefreshLockUntilRef.current = Date.now() + SOURCE_REFRESH_LOCK_MS
+    }
+    setLoadError('')
+    setSourceLastSyncedAt(Date.now())
+  }, [resolvedSource, sourceFromQuery])
+
+  useEffect(() => {
+    if (!resolvedSource) return
+    const onFocusOrOnline = () => {
+      void refreshSourceNow()
+      if (isHistoryOpen) {
+        void loadSnapshotHistory(true)
+      }
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshSourceNow()
+        if (isHistoryOpen) {
+          void loadSnapshotHistory(true)
+        }
+      }
+    }
+    window.addEventListener('focus', onFocusOrOnline)
+    window.addEventListener('online', onFocusOrOnline)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('focus', onFocusOrOnline)
+      window.removeEventListener('online', onFocusOrOnline)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [isHistoryOpen, resolvedSource, refreshSourceNow])
+
+  useEffect(() => {
+    if (!eventsEndpoint) return
+    const eventStream = new EventSource(eventsEndpoint)
+    eventStream.onmessage = () => {
+      void refreshSourceNow()
+      if (isHistoryOpen) {
+        void loadSnapshotHistory(true)
+      }
+    }
+    eventStream.onerror = () => {
+      // Keep app functional without forcing periodic polling fallback.
+    }
+    return () => {
+      eventStream.close()
+    }
+  }, [eventsEndpoint, isHistoryOpen, refreshSourceNow])
 
   useEffect(() => {
     if (!isQuickStartOpen && !isAdvancedInfoOpen && !isHistoryOpen) return
@@ -657,15 +768,6 @@ export default function Home() {
   useEffect(() => {
     setHistoryDiffFilter('all')
   }, [selectedHistoryId])
-
-  useEffect(() => {
-    if (!isHistoryOpen) return
-    if (!effectiveSourceContext?.historyEndpoint) return
-    const historySyncTimer = window.setInterval(() => {
-      void loadSnapshotHistory(true)
-    }, SOURCE_SYNC_INTERVAL_MS)
-    return () => window.clearInterval(historySyncTimer)
-  }, [isHistoryOpen, effectiveSourceContext?.historyEndpoint, selectedHistoryId])
 
   async function loadSnapshotVersion(item: SnapshotHistoryItem, comparisonItems: SnapshotHistoryItem[] = historyItems) {
     setSelectedHistoryId(item.id)
@@ -860,9 +962,7 @@ export default function Home() {
     setIsHistoryOpen(true)
     bumpSnapshotMetric('history_open')
     trackEvent('tokvista_snapshot_history_open', { source: installIntentLabel })
-    if (!historyItems.length || historyError) {
-      void loadSnapshotHistory(true)
-    }
+    void loadSnapshotHistory(true)
   }
 
   function openOldSnapshot() {
@@ -1031,7 +1131,7 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>{'->'}</div>}
                           {change.newValue && (
                             <div className={styles.diffValue}>
                               <div className={styles.diffLabel}>New</div>
@@ -1058,7 +1158,7 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>{'->'}</div>}
                           {change.newValue && (
                             <div className={styles.diffValue}>
                               <div className={styles.diffLabel}>New</div>
@@ -1079,7 +1179,7 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>→</div>}
+                          {change.oldValue && change.newValue && <div className={styles.diffArrow}>{'->'}</div>}
                           {change.newValue && (
                             <div className={styles.diffValue}>
                               <div className={styles.diffLabel}>New</div>
@@ -1171,6 +1271,7 @@ export default function Home() {
           accessMode: hasInstallIntent ? 'preview' : 'full',
           historyEndpoint: effectiveSourceContext?.historyEndpoint || '',
           sourceUrl: effectiveSourceContext?.sourceUrl || resolvedSource,
+          onRefreshSource: refreshSourceNow,
           title: 'Snapshot History',
         }}
         playgroundLock={
@@ -1281,7 +1382,7 @@ export default function Home() {
                 <div>
                   <h3 className={styles.historyPanelTitle}>Snapshot History</h3>
                   <p className={styles.historyPanelMeta}>
-                    {effectiveSourceContext?.projectId || 'Unknown project'} · {effectiveSourceContext?.environment || 'dev'}
+                    {effectiveSourceContext?.projectId || 'Unknown project'} Â· {effectiveSourceContext?.environment || 'dev'}
                   </p>
                 </div>
                 <div className={styles.historyPanelActions}>
@@ -1626,3 +1727,6 @@ export default function Home() {
     </main>
   )
 }
+
+
+
