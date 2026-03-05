@@ -40,7 +40,6 @@ This command builds the root `tokvista` package first, then starts the demo.
 - Spacing scale display
 - Size scale display  
 - Border radius showcase
-- Dark mode toggle
 - Copy-to-clipboard functionality
 - Search and filter capabilities
 

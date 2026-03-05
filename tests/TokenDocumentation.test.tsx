@@ -188,20 +188,12 @@ describe('TokenDocumentation Component', () => {
         expect(fontWeightsSections.length).toBeGreaterThan(0);
     });
 
-    it('should toggle dark mode theme', () => {
-        const { container } = render(<TokenDocumentation tokens={mockTokens} />);
-        const ftdContainer = container.querySelector('.ftd-container');
-
-        const themeToggle = screen.getByTitle(/Switch to dark mode/i) || screen.getByTitle(/Switch to light mode/i);
-
-        // Initially light or default (assuming light for this test)
-        expect(ftdContainer).toHaveAttribute('data-theme', 'light');
-
-        fireEvent.click(themeToggle);
-        expect(ftdContainer).toHaveAttribute('data-theme', 'dark');
-
-        fireEvent.click(themeToggle);
-        expect(ftdContainer).toHaveAttribute('data-theme', 'light');
+    it('should not render a theme toggle control', () => {
+        render(<TokenDocumentation tokens={mockTokens} />);
+        expect(screen.queryByTitle(/Switch to dark mode/i)).not.toBeInTheDocument();
+        expect(screen.queryByTitle(/Switch to light mode/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /dark/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /light/i })).not.toBeInTheDocument();
     });
 
     describe('Accessibility', () => {

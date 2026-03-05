@@ -353,7 +353,6 @@ export function TokenDocumentation({
     subtitle = 'Interactive documentation for your design system',
     defaultTab,
     showSearch = true,
-    darkMode: initialDarkMode = false,
     fontFamilySans,
     fontFamilyMono,
     loadDefaultFonts = true,
@@ -366,7 +365,6 @@ export function TokenDocumentation({
     // State
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
     const [isMounted, setIsMounted] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<{ id: number; value: string } | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
@@ -501,17 +499,6 @@ export function TokenDocumentation({
         return 'css';
     });
 
-    // Initial theme restoration
-    useEffect(() => {
-        try {
-            const savedTheme = localStorage.getItem('ftd-theme-preference');
-            if (savedTheme === 'dark') setIsDarkMode(true);
-            else if (savedTheme === 'light') setIsDarkMode(false);
-        } catch {
-            // Ignore storage access errors
-        }
-    }, []);
-
     // Load default fonts only when requested
     useEffect(() => {
         if (!loadDefaultFonts) return;
@@ -531,18 +518,6 @@ export function TokenDocumentation({
             'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap';
         document.head.appendChild(link);
     }, [loadDefaultFonts]);
-
-    const toggleTheme = () => {
-        setIsDarkMode(prev => {
-            const next = !prev;
-            try {
-                localStorage.setItem('ftd-theme-preference', next ? 'dark' : 'light');
-            } catch {
-                // Ignore storage access errors
-            }
-            return next;
-        });
-    };
 
     // Save playground state to localStorage whenever it changes
     useEffect(() => {
@@ -1201,7 +1176,7 @@ export function TokenDocumentation({
 
     // Skeleton Component
     const SkeletonLoader = () => (
-        <div className="ftd-container" data-theme={isDarkMode ? 'dark' : 'light'} style={fontOverrides}>
+        <div className="ftd-container" style={fontOverrides}>
             <div className="ftd-navbar-sticky">
                 <header className="ftd-header">
                     <div className="ftd-title-wrapper">
@@ -1211,7 +1186,6 @@ export function TokenDocumentation({
                     <div className="ftd-header-actions">
                         <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-export" />
                         <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-search" />
-                        <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-theme" />
                     </div>
                 </header>
                 <div className="ftd-skeleton-tabs">
@@ -1238,7 +1212,6 @@ export function TokenDocumentation({
     return (
         <div
             className={`ftd-container ftd-container-animated`}
-            data-theme={isDarkMode ? 'dark' : 'light'}
             style={{ opacity: isMounted ? 1 : 0, ...fontOverrides }}
         >
             {copiedToken &&
@@ -1303,16 +1276,6 @@ export function TokenDocumentation({
                                 <kbd className="ftd-search-shortcut">⌘K</kbd>
                             </button>
                         )}
-                        <button
-                            className="ftd-theme-toggle"
-                            onClick={toggleTheme}
-                            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                            type="button"
-                        >
-                            <Icon name={isDarkMode ? 'sun' : 'moon'} />
-                            {isDarkMode ? 'Light' : 'Dark'}
-                        </button>
                     </div>
                 </header>
 

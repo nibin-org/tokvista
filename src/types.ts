@@ -80,7 +80,6 @@ export interface TokenDocumentationProps {
   subtitle?: string;
   defaultTab?: string;
   showSearch?: boolean;
-  darkMode?: boolean;
   fontFamilySans?: string;
   fontFamilyMono?: string;
   loadDefaultFonts?: boolean;

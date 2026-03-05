@@ -26,7 +26,6 @@ Design token documentation is often static and hard to scan. **Tokvista** gives 
 - One-click copy with format-aware variable names
 - Semantic + component token views with aliases resolved
 - Generic **All Tokens** view for non-standard JSON structures
-- Built-in dark mode
 - Interactive playground for previews
 - Two usage modes: zero-setup CLI and React component library
 
@@ -238,7 +237,6 @@ Need a full setup guide? See **[GUIDE.md](./GUIDE.md)**.
 | `tokens` | `FigmaTokens` | Required | Tokens object (W3C format or Token Studio) |
 | `title` | `string` | `"Design Tokens"` | Main header title |
 | `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
-| `darkMode` | `boolean` | `false` | Initial theme state |
 | `fontFamilySans` | `string` | `undefined` | Override the UI sans font-family (CSS value). Load the font in your app. |
 | `fontFamilyMono` | `string` | `undefined` | Override the UI mono font-family (CSS value). Load the font in your app. |
 | `loadDefaultFonts` | `boolean` | `true` | When `true`, loads Inter + JetBrains Mono from Google Fonts. Set `false` to use only your app fonts. |
