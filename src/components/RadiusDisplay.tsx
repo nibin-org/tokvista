@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 
 /**
  * RadiusDisplay - Visual demonstration of border radius tokens
- * Shows boxes with actual border radius applied
+ * Shows a card grid where each card previews the actual radius with corner annotations
  */
 export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
@@ -29,16 +29,12 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
     }, []);
 
     useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     }, []);
 
     const handleCopy = useCallback(async (value: string, token?: ParsedRadiusToken) => {
         const success = await copyToClipboard(value);
-        if (success) {
-            showToast(value);
-        }
+        if (success) showToast(value);
         if (token) onTokenClick?.(token);
     }, [onTokenClick, showToast]);
 
@@ -60,50 +56,39 @@ export function RadiusDisplay({ tokens, onTokenClick }: RadiusDisplayProps) {
                 <span className="ftd-section-count">{radiusTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-token-grid">
+            <div className="ftd-radius-grid">
                 {radiusTokens.map((token) => {
                     const varValue = `var(${token.cssVariable})`;
                     return (
                         <div
                             key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
+                            className="ftd-radius-card"
                             data-token-name={token.name}
                             onClick={() => void handleCopy(varValue, token)}
                             title={`Click to copy: ${varValue}`}
                         >
-                            <div className="ftd-token-preview-container">
+                            {/* Demo box with corner annotations */}
+                            <div className="ftd-radius-demo-wrap">
                                 <div
-                                    className="ftd-token-preview"
+                                    className="ftd-radius-demo-box"
                                     style={{ borderRadius: token.value }}
-                                />
+                                >
+                                    <span className="ftd-radius-corner-mark ftd-radius-corner-tl" />
+                                    <span className="ftd-radius-corner-mark ftd-radius-corner-tr" />
+                                    <span className="ftd-radius-corner-mark ftd-radius-corner-bl" />
+                                    <span className="ftd-radius-corner-mark ftd-radius-corner-br" />
+                                </div>
                             </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.cssVariable, token);
-                                    }}
-                                >
-                                    {token.cssVariable}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.value, token);
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
+                            {/* Token info */}
+                            <div className="ftd-radius-info">
+                                <p className="ftd-radius-name">{token.name}</p>
+                                <p className="ftd-radius-val">{token.value}</p>
                             </div>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Premium Copy Toast */}
             {copiedToast &&
                 (typeof document !== 'undefined'
                     ? createPortal(

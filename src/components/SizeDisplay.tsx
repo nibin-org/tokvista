@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { SizeDisplayProps, ParsedSizeToken } from '../types';
 import { parseSizeTokens } from '../utils/dimension';
@@ -9,7 +9,8 @@ import { Icon } from './Icon';
 
 /**
  * SizeDisplay - Visual representation of size tokens
- * Shows vertical bars with proportional heights and horizontal bars
+ * Shows proportional square elements aligned to a baseline — 
+ * both width and height scale together so you see real proportions
  */
 export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
@@ -17,6 +18,13 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     const toastTimerRef = useRef<number | null>(null);
 
     const sizeTokens = parseSizeTokens(tokens);
+
+    // Max display size in px so huge tokens don't overflow
+    const MAX_DISPLAY_PX = 96;
+    const maxValue = useMemo(() => {
+        if (sizeTokens.length === 0) return 1;
+        return Math.max(...sizeTokens.map(t => t.numericValue), 1);
+    }, [sizeTokens]);
 
     const showToast = useCallback((value: string) => {
         const id = ++toastIdRef.current;
@@ -29,16 +37,12 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     }, []);
 
     useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     }, []);
 
     const handleCopy = useCallback(async (value: string, token?: ParsedSizeToken) => {
         const success = await copyToClipboard(value);
-        if (success) {
-            showToast(value);
-        }
+        if (success) showToast(value);
         if (token) onTokenClick?.(token);
     }, [onTokenClick, showToast]);
 
@@ -60,55 +64,31 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
                 <span className="ftd-section-count">{sizeTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-token-grid">
-                {sizeTokens.map((token) => {
-                    const varValue = `var(${token.cssVariable})`;
-                    return (
-                        <div
-                            key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
-                            data-token-name={token.name}
-                            onClick={() => void handleCopy(varValue, token)}
-                            title={`Click to copy: ${varValue}`}
-                        >
-                            <div className="ftd-token-preview-container">
+            <div className="ftd-size-canvas-wrap">
+                <div className="ftd-size-canvas">
+                    {sizeTokens.map((token) => {
+                        const varValue = `var(${token.cssVariable})`;
+                        const displayPx = Math.max(8, (token.numericValue / maxValue) * MAX_DISPLAY_PX);
+
+                        return (
+                            <div
+                                key={token.name}
+                                className="ftd-size-item"
+                                onClick={() => void handleCopy(varValue, token)}
+                                title={`Click to copy: ${varValue}`}
+                            >
                                 <div
-                                    className="ftd-token-preview"
-                                    style={{
-                                        width: token.value,
-                                        height: token.value,
-                                        borderRadius: '2px', // Slight rounding for style
-                                        backgroundColor: 'var(--ftd-primary)'
-                                    }}
+                                    className="ftd-size-element"
+                                    style={{ width: `${displayPx}px`, height: `${displayPx}px` }}
                                 />
+                                <span className="ftd-size-name">{token.name}</span>
+                                <span className="ftd-size-val">{token.value}</span>
                             </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.cssVariable, token);
-                                    }}
-                                >
-                                    {token.cssVariable}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.value, token);
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* Premium Copy Toast */}
             {copiedToast &&
                 (typeof document !== 'undefined'
                     ? createPortal(

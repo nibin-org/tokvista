@@ -128,38 +128,62 @@ export function ColorDisplay({
                             <h2 className="ftd-section-title">Base Colors</h2>
                         </div>
                         <div className="ftd-color-family-container">
-                            {colorFamilies.map((family) => (
-                                <div key={family.name} className="ftd-color-family">
-                                    <div className="ftd-color-family-header">
-                                        <div className="ftd-color-family-swatch" style={{ backgroundColor: family.primaryColor }} />
-                                        <h3 className="ftd-color-family-name">{family.name}</h3>
-                                    </div>
-                                    <div className="ftd-color-scale">
-                                        {family.shades.map((shade) => (
-                                            <div
-                                                key={shade.name}
-                                                className="ftd-color-shade"
-                                                data-token-name={shade.name}
-                                                data-token-css-var={shade.cssVariable}
-                                                style={{
-                                                    backgroundColor: shade.resolvedValue || shade.value,
-                                                    color: getContrastColor(shade.resolvedValue || shade.value),
-                                                }}
-                                            >
-                                                <span className="ftd-color-shade-label">{shade.shade}</span>
-                                                <div className="ftd-shade-values">
-                                                    <span className="ftd-shade-css-var" onClick={() => copyToClipboard(shade.cssVariable).then((success) => { if (success) showToast(shade.cssVariable); })}>
-                                                        {shade.cssVariable}
-                                                    </span>
-                                                    <span className="ftd-shade-hex" onClick={() => handleCopy(shade)}>
+                            {colorFamilies.map((family) => {
+                                const primaryHex = family.primaryColor.startsWith('#')
+                                    ? family.primaryColor.substring(0, 7)
+                                    : family.primaryColor;
+                                const heroTextColor = getContrastColor(family.primaryColor);
+                                return (
+                                    <div key={family.name} className="ftd-color-family-card">
+                                        {/* Hero swatch */}
+                                        <div
+                                            className="ftd-color-family-hero"
+                                            style={{ background: `linear-gradient(135deg, ${family.primaryColor}, ${family.shades[family.shades.length - 1]?.resolvedValue || family.primaryColor})` }}
+                                        >
+                                            <div className="ftd-color-family-hero-overlay" />
+                                            <span className="ftd-color-family-hero-name" style={{ color: heroTextColor === 'white' ? '#fff' : '#000' }}>
+                                                {family.name}
+                                            </span>
+                                        </div>
+                                        {/* Shade strip */}
+                                        <div className="ftd-color-shades-strip">
+                                            {family.shades.map(shade => (
+                                                <div
+                                                    key={shade.name}
+                                                    className="ftd-color-shade-pip"
+                                                    style={{ background: shade.resolvedValue || shade.value }}
+                                                />
+                                            ))}
+                                        </div>
+                                        {/* Meta row */}
+                                        <div className="ftd-color-family-meta">
+                                            <span className="ftd-color-family-count">{family.shades.length} shades</span>
+                                            <span className="ftd-color-family-hex">{primaryHex}</span>
+                                        </div>
+                                        {/* Expanded shade list on hover */}
+                                        <div className="ftd-color-shade-rows">
+                                            {family.shades.map((shade) => (
+                                                <div
+                                                    key={shade.name}
+                                                    className="ftd-color-shade-row-item"
+                                                    data-token-name={shade.name}
+                                                    data-token-css-var={shade.cssVariable}
+                                                    onClick={() => handleCopy(shade)}
+                                                >
+                                                    <div
+                                                        className="ftd-color-shade-row-dot"
+                                                        style={{ background: shade.resolvedValue || shade.value }}
+                                                    />
+                                                    <span className="ftd-color-shade-row-name">{shade.shade}</span>
+                                                    <span className="ftd-color-shade-row-hex">
                                                         {shade.value.startsWith('{') ? shade.resolvedValue?.substring(0, 7) : shade.value.substring(0, 7)}
                                                     </span>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { ThemeToggle, type ThemeMode } from './ThemeToggle';
 import { createPortal } from 'react-dom';
 import type {
     TokenDocumentationProps,
@@ -9,6 +10,7 @@ import type {
     VariantTokens,
     DimensionGroup,
     SnapshotAccessMode,
+    ThemeColors,
 } from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
@@ -44,6 +46,131 @@ type SnapshotHistoryItem = {
     referenceUrl: string;
 };
 type SnapshotDiffFilter = 'all' | 'added' | 'changed' | 'removed';
+type RgbColor = { r: number; g: number; b: number };
+
+function parseHexColor(input: string): RgbColor | null {
+    const normalized = input.trim();
+    const match = normalized.match(/^#([0-9a-f]{3,8})$/i);
+    if (!match) return null;
+
+    const value = match[1];
+    const isShort = value.length === 3 || value.length === 4;
+    const expanded = isShort ? value.split('').map((char) => `${char}${char}`).join('') : value;
+    if (expanded.length !== 6 && expanded.length !== 8) return null;
+
+    const r = Number.parseInt(expanded.slice(0, 2), 16);
+    const g = Number.parseInt(expanded.slice(2, 4), 16);
+    const b = Number.parseInt(expanded.slice(4, 6), 16);
+    if ([r, g, b].some((channel) => Number.isNaN(channel))) return null;
+    return { r, g, b };
+}
+
+function parseRgbColor(input: string): RgbColor | null {
+    const normalized = input.trim();
+    const match = normalized.match(/^rgba?\(([^)]+)\)$/i);
+    if (!match) return null;
+
+    const parts = match[1].split(',').map((part) => part.trim());
+    if (parts.length < 3) return null;
+
+    const r = Number.parseFloat(parts[0]);
+    const g = Number.parseFloat(parts[1]);
+    const b = Number.parseFloat(parts[2]);
+    if ([r, g, b].some((channel) => Number.isNaN(channel))) return null;
+
+    return {
+        r: Math.max(0, Math.min(255, Math.round(r))),
+        g: Math.max(0, Math.min(255, Math.round(g))),
+        b: Math.max(0, Math.min(255, Math.round(b))),
+    };
+}
+
+function parseBrowserColor(input: string): RgbColor | null {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return null;
+    if (!document.body) return null;
+
+    const probe = document.createElement('span');
+    probe.style.color = '';
+    probe.style.color = input.trim();
+    if (!probe.style.color) return null;
+
+    probe.style.display = 'none';
+    document.body.appendChild(probe);
+    const resolved = window.getComputedStyle(probe).color;
+    probe.remove();
+    return parseRgbColor(resolved);
+}
+
+function parseCssColorToRgb(input: string): RgbColor | null {
+    return parseHexColor(input) || parseRgbColor(input) || parseBrowserColor(input);
+}
+
+function rgbToCssValue(rgb: RgbColor): string {
+    return `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+}
+
+function mixRgb(base: RgbColor, target: RgbColor, amount: number): RgbColor {
+    const clamped = Math.max(0, Math.min(1, amount));
+    const mixChannel = (a: number, b: number) => Math.round(a + (b - a) * clamped);
+    return {
+        r: mixChannel(base.r, target.r),
+        g: mixChannel(base.g, target.g),
+        b: mixChannel(base.b, target.b),
+    };
+}
+
+function getLuminance(rgb: RgbColor): number {
+    return (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+}
+
+function getReadableTextColor(background: RgbColor): string {
+    const luminance = getLuminance(background);
+    return luminance > 0.58 ? '#111827' : '#F9FAFB';
+}
+
+function rgbToCssColor(rgb: RgbColor): string {
+    return `rgb(${rgbToCssValue(rgb)})`;
+}
+
+function resolveThemeColorsForMode(colors: ThemeColors, mode: ThemeMode): ThemeColors {
+    if (mode === 'light') return colors;
+
+    const black: RgbColor = { r: 0, g: 0, b: 0 };
+    const white: RgbColor = { r: 255, g: 255, b: 255 };
+    const defaultLightBg: RgbColor = { r: 255, g: 255, b: 255 };
+    const defaultLightSurface: RgbColor = { r: 249, g: 250, b: 251 };
+
+    const inputBackground = parseCssColorToRgb(colors.background || '') || defaultLightBg;
+    const inputSurface = parseCssColorToRgb(colors.surface || '') || parseCssColorToRgb(colors.background || '') || defaultLightSurface;
+    const inputBorder = parseCssColorToRgb(colors.border || '');
+    const inputText = parseCssColorToRgb(colors.text || '');
+    const inputTextSecondary = parseCssColorToRgb(colors.textSecondary || '');
+
+    const darkenForMode = (value: RgbColor, strong: number, mild: number): RgbColor => {
+        const amount = getLuminance(value) > 0.45 ? strong : mild;
+        return mixRgb(value, black, amount);
+    };
+
+    const background = darkenForMode(inputBackground, 0.9, 0.55);
+    const surface = darkenForMode(inputSurface, 0.86, 0.5);
+    const border = inputBorder ? darkenForMode(inputBorder, 0.75, 0.35) : mixRgb(surface, white, 0.2);
+
+    const text = inputText
+        ? (getLuminance(inputText) < 0.68 ? mixRgb(inputText, white, 0.72) : inputText)
+        : { r: 243, g: 244, b: 246 };
+    const textSecondary = inputTextSecondary
+        ? (getLuminance(inputTextSecondary) < 0.6 ? mixRgb(inputTextSecondary, white, 0.62) : inputTextSecondary)
+        : mixRgb(text, background, 0.35);
+
+    return {
+        primary: colors.primary,
+        background: rgbToCssColor(background),
+        surface: rgbToCssColor(surface),
+        border: rgbToCssColor(border),
+        text: rgbToCssColor(text),
+        textSecondary: rgbToCssColor(textSecondary),
+    };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -359,6 +486,7 @@ export function TokenDocumentation({
     onTokenClick,
     playgroundLock,
     snapshotHistory,
+    theme,
 }: TokenDocumentationProps) {
     const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
 
@@ -393,6 +521,18 @@ export function TokenDocumentation({
             } catch {}
         }
         return 'css';
+    });
+
+    // Theme state
+    const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+        if (theme?.mode) return theme.mode;
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('ftd-theme-mode');
+                if (saved === 'light' || saved === 'dark') return saved;
+            } catch {}
+        }
+        return 'dark';
     });
 
     // Default configuration
@@ -555,6 +695,132 @@ export function TokenDocumentation({
             } catch {}
         }
     }, [copyFormat]);
+
+    // Apply theme mode and custom colors
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        // Set theme mode
+        document.documentElement.setAttribute('data-theme', themeMode);
+
+        // Save theme preference
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('ftd-theme-mode', themeMode);
+            } catch {}
+        }
+
+        // Apply custom theme colors if provided
+        if (theme?.colors) {
+            const root = document.documentElement;
+            const colors = resolveThemeColorsForMode(theme.colors, themeMode);
+
+            const setColor = (cssVar: string, value?: string) => {
+                if (!value) return;
+                root.style.setProperty(cssVar, value);
+            };
+
+            setColor('--ftd-primary', colors.primary);
+            setColor('--ftd-bg-page', colors.background);
+            setColor('--ftd-bg-card', colors.surface);
+            setColor('--ftd-bg-subtle', colors.surface);
+            setColor('--ftd-border', colors.border);
+            setColor('--ftd-border-hover', colors.border);
+            setColor('--ftd-text-main', colors.text);
+            setColor('--ftd-text-sub', colors.textSecondary);
+
+            const computed = window.getComputedStyle(root);
+            const readColor = (varName: string) => computed.getPropertyValue(varName).trim();
+
+            const primaryRgb = parseCssColorToRgb(colors.primary || readColor('--ftd-primary'));
+            const backgroundRgb = parseCssColorToRgb(colors.background || readColor('--ftd-bg-page'));
+            const surfaceRgb = parseCssColorToRgb(colors.surface || readColor('--ftd-bg-card'));
+            const borderRgb = parseCssColorToRgb(colors.border || readColor('--ftd-border'));
+            const mainTextRgb = parseCssColorToRgb(colors.text || readColor('--ftd-text-main'));
+
+            if (primaryRgb) {
+                root.style.setProperty('--ftd-primary-rgb', rgbToCssValue(primaryRgb));
+                root.style.setProperty('--ftd-primary-fade', `rgba(${rgbToCssValue(primaryRgb)}, 0.12)`);
+                root.style.setProperty('--ftd-primary-contrast', getReadableTextColor(primaryRgb));
+            }
+
+            if (backgroundRgb) {
+                root.style.setProperty('--ftd-bg-page-rgb', rgbToCssValue(backgroundRgb));
+            }
+
+            if (surfaceRgb) {
+                const surfaceRgbValue = rgbToCssValue(surfaceRgb);
+                root.style.setProperty('--ftd-bg-card-rgb', surfaceRgbValue);
+                root.style.setProperty('--ftd-bg-subtle-rgb', surfaceRgbValue);
+                root.style.setProperty('--ftd-glass-bg', `rgba(${surfaceRgbValue}, 0.88)`);
+                root.style.setProperty('--ftd-panel-bg', `rgba(${surfaceRgbValue}, 0.65)`);
+            }
+
+            if (borderRgb) {
+                const borderRgbValue = rgbToCssValue(borderRgb);
+                root.style.setProperty('--ftd-border-rgb', borderRgbValue);
+                root.style.setProperty('--ftd-glass-border', `rgba(${borderRgbValue}, 0.9)`);
+                root.style.setProperty('--ftd-outline-soft', `rgba(${borderRgbValue}, 0.8)`);
+            }
+
+            const fallbackTextRgb = themeMode === 'dark'
+                ? { r: 240, g: 235, b: 227 }
+                : { r: 17, g: 24, b: 39 };
+            const textRgb = mainTextRgb || fallbackTextRgb;
+
+            if (surfaceRgb) {
+                const hoverRgb = mixRgb(surfaceRgb, textRgb, 0.1);
+                root.style.setProperty('--ftd-bg-hover-rgb', rgbToCssValue(hoverRgb));
+                root.style.setProperty('--ftd-bg-hover', `rgb(${rgbToCssValue(hoverRgb)})`);
+            }
+
+            if (backgroundRgb) {
+                root.style.setProperty('--ftd-glass-bg-strong', `rgba(${rgbToCssValue(backgroundRgb)}, 0.96)`);
+            }
+
+            if (backgroundRgb && surfaceRgb) {
+                const raisedRgb = mixRgb(backgroundRgb, surfaceRgb, 0.52);
+                const raisedRgbValue = rgbToCssValue(raisedRgb);
+                const surfaceRgbValue = rgbToCssValue(surfaceRgb);
+                const backgroundRgbValue = rgbToCssValue(backgroundRgb);
+                root.style.setProperty('--ftd-bg-raised-rgb', raisedRgbValue);
+                root.style.setProperty('--ftd-surface-bg', `linear-gradient(180deg, rgba(${raisedRgbValue}, 0.9) 0%, rgba(${surfaceRgbValue}, 0.8) 100%)`);
+                root.style.setProperty('--ftd-surface-bg-strong', `linear-gradient(180deg, rgba(${raisedRgbValue}, 0.98) 0%, rgba(${backgroundRgbValue}, 0.92) 100%)`);
+            }
+        }
+
+        return () => {
+            // Cleanup custom colors on unmount
+            if (theme?.colors) {
+                const root = document.documentElement;
+                root.style.removeProperty('--ftd-primary');
+                root.style.removeProperty('--ftd-primary-rgb');
+                root.style.removeProperty('--ftd-primary-fade');
+                root.style.removeProperty('--ftd-primary-contrast');
+                root.style.removeProperty('--ftd-bg-page');
+                root.style.removeProperty('--ftd-bg-page-rgb');
+                root.style.removeProperty('--ftd-bg-card');
+                root.style.removeProperty('--ftd-bg-card-rgb');
+                root.style.removeProperty('--ftd-bg-raised-rgb');
+                root.style.removeProperty('--ftd-bg-subtle');
+                root.style.removeProperty('--ftd-bg-subtle-rgb');
+                root.style.removeProperty('--ftd-bg-hover');
+                root.style.removeProperty('--ftd-bg-hover-rgb');
+                root.style.removeProperty('--ftd-border');
+                root.style.removeProperty('--ftd-border-rgb');
+                root.style.removeProperty('--ftd-border-hover');
+                root.style.removeProperty('--ftd-glass-bg');
+                root.style.removeProperty('--ftd-glass-bg-strong');
+                root.style.removeProperty('--ftd-glass-border');
+                root.style.removeProperty('--ftd-panel-bg');
+                root.style.removeProperty('--ftd-outline-soft');
+                root.style.removeProperty('--ftd-surface-bg');
+                root.style.removeProperty('--ftd-surface-bg-strong');
+                root.style.removeProperty('--ftd-text-main');
+                root.style.removeProperty('--ftd-text-sub');
+            }
+        };
+    }, [themeMode, theme]);
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
@@ -1239,6 +1505,9 @@ export function TokenDocumentation({
                         <p className="ftd-subtitle">{subtitle}</p>
                     </div>
                     <div className="ftd-header-actions">
+                        {theme?.enableModeToggle !== false && (
+                            <ThemeToggle mode={themeMode} onChange={setThemeMode} />
+                        )}
                         <FormatSelector format={copyFormat} onChange={setCopyFormat} />
                         <button className="ftd-export-button-nav" onClick={() => setExportOpen(true)} type="button">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1509,4 +1778,3 @@ export function TokenDocumentation({
 }
 
 export default TokenDocumentation;
-

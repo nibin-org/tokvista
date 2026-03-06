@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { SpacingDisplayProps, ParsedSpacingToken } from '../types';
 import { parseSpacingTokens } from '../utils/dimension';
@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 
 /**
  * SpacingDisplay - Visual representation of spacing tokens
- * Shows horizontal bars with proportional widths
+ * Shows a row layout: name | proportional bar | real box demo | value
  */
 export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
@@ -17,6 +17,11 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     const toastTimerRef = useRef<number | null>(null);
 
     const spacingTokens = parseSpacingTokens(tokens);
+
+    const maxValue = useMemo(() => {
+        if (spacingTokens.length === 0) return 1;
+        return Math.max(...spacingTokens.map(t => t.numericValue), 1);
+    }, [spacingTokens]);
 
     const showToast = useCallback((value: string) => {
         const id = ++toastIdRef.current;
@@ -29,16 +34,12 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     }, []);
 
     useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     }, []);
 
     const handleCopy = useCallback(async (value: string, token?: ParsedSpacingToken) => {
         const success = await copyToClipboard(value);
-        if (success) {
-            showToast(value);
-        }
+        if (success) showToast(value);
         if (token) onTokenClick?.(token);
     }, [onTokenClick, showToast]);
 
@@ -60,55 +61,34 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
                 <span className="ftd-section-count">{spacingTokens.length} tokens</span>
             </div>
 
-            <div className="ftd-token-grid">
+            <div className="ftd-spacing-list">
                 {spacingTokens.map((token) => {
                     const varValue = `var(${token.cssVariable})`;
+                    const pct = Math.max(2, (token.numericValue / maxValue) * 100);
+                    const boxWidth = Math.min(80, Math.max(4, (token.numericValue / maxValue) * 80));
 
                     return (
                         <div
                             key={token.name}
-                            className="ftd-display-card ftd-clickable-card"
+                            className="ftd-spacing-row"
                             data-token-name={token.name}
                             onClick={() => void handleCopy(varValue, token)}
                             title={`Click to copy: ${varValue}`}
                         >
-                            <div className="ftd-token-preview-container">
-                                <div
-                                    className="ftd-token-preview"
-                                    style={{
-                                        width: token.value,
-                                        height: '8px',
-                                        borderRadius: '2px',
-                                    }}
-                                />
+                            <span className="ftd-spacing-label">{token.name}</span>
+                            <div className="ftd-spacing-track">
+                                <div className="ftd-spacing-fill" style={{ width: `${pct}%` }} />
                             </div>
-                            <p className="ftd-token-card-label">{token.name}</p>
-                            <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.cssVariable, token);
-                                    }}
-                                >
-                                    {token.cssVariable}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(token.value, token);
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
+                            <div className="ftd-spacing-box-demo">
+                                <div className="ftd-spacing-box" style={{ width: `${boxWidth}px` }} />
                             </div>
+                            <span className="ftd-spacing-value">{token.value}</span>
+                            <span className="ftd-spacing-copy-hint">copy</span>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Premium Copy Toast */}
             {copiedToast &&
                 (typeof document !== 'undefined'
                     ? createPortal(

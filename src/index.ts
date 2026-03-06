@@ -46,6 +46,9 @@ export { Spacing, Colors, Sizes, Radius } from './components/StandaloneComponent
 // Types
 export type {
   TokenDocumentationProps,
+  ThemeConfig,
+  ThemeColors,
+  ThemeMode,
   SnapshotHistoryOptions,
   SnapshotAccessMode,
   GitHubSnapshotProjectConfig,

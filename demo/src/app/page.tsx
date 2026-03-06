@@ -61,6 +61,7 @@ const SNAPSHOT_FULL_DIFF_LIMIT = 15
 const SNAPSHOT_HISTORY_RENDER_CAP = 120
 const SNAPSHOT_COMPARE_RANGE_DISABLED_MESSAGE = 'Compare range unlocks after installing tokvista in your project.'
 const SOURCE_REFRESH_LOCK_MS = 30000
+const LOCAL_SAMPLE_TOKENS_PATH = '/token-sample.json'
 
 type PackageManagerId = (typeof QUICK_START_COMMANDS)[number]['id']
 type ConversionVariant = 'a' | 'b'
@@ -600,7 +601,37 @@ export default function Home() {
 
     const source = resolvedSource
     if (!source) {
-      setSourceLastSyncedAt(null)
+      setSourceContext(null)
+      setIsSharedPreview(false)
+      setSharedSourceLabel('')
+
+      async function loadLocalSample() {
+        const requestId = ++latestSourceRequestRef.current
+        try {
+          const response = await fetch(withCacheBust(LOCAL_SAMPLE_TOKENS_PATH), { cache: 'no-store' })
+          if (!response.ok) {
+            throw new Error(`Failed to load local sample tokens (${response.status})`)
+          }
+          const parsed = await response.json()
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('Local sample token JSON is invalid')
+          }
+          if (disposed || requestId !== latestSourceRequestRef.current) return
+          setTokens(parsed as TokensPayload)
+          setSubtitle(`Local sample tokens (token-sample.json) - Version ${process.env.NEXT_PUBLIC_PACKAGE_VERSION}`)
+          setLoadError('')
+        } catch (error) {
+          if (disposed || requestId !== latestSourceRequestRef.current) return
+          const message = error instanceof Error ? error.message : String(error)
+          setTokens({})
+          setLoadError(message)
+        } finally {
+          if (disposed || requestId !== latestSourceRequestRef.current) return
+          setSourceLastSyncedAt(null)
+        }
+      }
+
+      void loadLocalSample()
       return
     }
 
@@ -1266,6 +1297,17 @@ export default function Home() {
         tokens={tokens}
         title="Tokvista Demo"
         subtitle={subtitleWithSync}
+        theme={{
+          mode: 'light',
+          colors: {
+            primary: '#FF6B6B',
+            background: '#FFFFFF',
+            surface: '#F9FAFB',
+            border: '#E5E7EB',
+            text: '#111827',
+            textSecondary: '#6B7280',
+          },
+        }}
         snapshotHistory={{
           enabled: true,
           accessMode: hasInstallIntent ? 'preview' : 'full',
@@ -1727,6 +1769,4 @@ export default function Home() {
     </main>
   )
 }
-
-
 

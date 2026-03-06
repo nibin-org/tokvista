@@ -73,6 +73,24 @@ export interface FigmaTokens {
   [key: string]: unknown; // Allow generic folder names like 'Foundation/Value', 'Semantic/Value', etc.
 }
 
+// Theme configuration
+export type ThemeMode = 'light' | 'dark';
+
+export interface ThemeColors {
+  primary?: string;
+  background?: string;
+  surface?: string;
+  border?: string;
+  text?: string;
+  textSecondary?: string;
+}
+
+export interface ThemeConfig {
+  mode?: ThemeMode;
+  colors?: ThemeColors;
+  enableModeToggle?: boolean;
+}
+
 // Component props
 export interface TokenDocumentationProps {
   tokens: FigmaTokens;
@@ -86,6 +104,7 @@ export interface TokenDocumentationProps {
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
   playgroundLock?: PlaygroundLockOptions;
   snapshotHistory?: SnapshotHistoryOptions;
+  theme?: ThemeConfig;
 }
 
 export interface PlaygroundLockOptions {
