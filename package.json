@@ -1,6 +1,6 @@
 {
   "name": "tokvista",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Interactive visual documentation for design tokens.",
   "type": "module",
   "main": "./dist/index.cjs",

@@ -1,7 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { TokenDocumentation } from '../components/TokenDocumentation';
-import type { ThemeConfig, TokenCategory, TokvistaThemePreference } from '../types';
+import type {
+  SnapshotHistoryOptions,
+  ThemeColors,
+  ThemeConfig,
+  TokenCategory,
+  TokvistaThemePreference,
+} from '../types';
 
 type CliRuntimeConfig = {
   title?: string;
@@ -9,9 +15,11 @@ type CliRuntimeConfig = {
   logo?: string;
   theme?: TokvistaThemePreference;
   brandColor?: string;
+  themeColors?: ThemeColors;
   categories?: string[];
   defaultTab?: string;
   showSearch?: boolean;
+  snapshotHistory?: SnapshotHistoryOptions;
 };
 
 declare global {
@@ -48,8 +56,55 @@ function normalizeDefaultTab(input: unknown): TokenCategory | undefined {
   return undefined;
 }
 
+function normalizeThemeColors(input: unknown): ThemeColors | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+  const record = input as Record<string, unknown>;
+  const colors: ThemeColors = {};
+
+  if (typeof record.primary === 'string' && record.primary.trim()) colors.primary = record.primary.trim();
+  if (typeof record.background === 'string' && record.background.trim()) colors.background = record.background.trim();
+  if (typeof record.surface === 'string' && record.surface.trim()) colors.surface = record.surface.trim();
+  if (typeof record.border === 'string' && record.border.trim()) colors.border = record.border.trim();
+  if (typeof record.text === 'string' && record.text.trim()) colors.text = record.text.trim();
+  if (typeof record.textSecondary === 'string' && record.textSecondary.trim()) colors.textSecondary = record.textSecondary.trim();
+
+  return Object.keys(colors).length > 0 ? colors : undefined;
+}
+
+function normalizeSnapshotHistory(input: unknown): SnapshotHistoryOptions | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+  const record = input as Record<string, unknown>;
+  if (typeof record.enabled !== 'boolean') return undefined;
+
+  const normalized: SnapshotHistoryOptions = {
+    enabled: record.enabled,
+  };
+
+  if (record.accessMode === 'preview' || record.accessMode === 'full') {
+    normalized.accessMode = record.accessMode;
+  }
+  if (typeof record.historyEndpoint === 'string' && record.historyEndpoint.trim()) {
+    normalized.historyEndpoint = record.historyEndpoint.trim();
+  }
+  if (typeof record.sourceUrl === 'string' && record.sourceUrl.trim()) {
+    normalized.sourceUrl = record.sourceUrl.trim();
+  }
+  if (typeof record.title === 'string' && record.title.trim()) {
+    normalized.title = record.title.trim();
+  }
+  if (typeof record.maxPreviewSnapshots === 'number' && Number.isFinite(record.maxPreviewSnapshots)) {
+    normalized.maxPreviewSnapshots = record.maxPreviewSnapshots;
+  }
+  if (typeof record.maxPreviewDiffs === 'number' && Number.isFinite(record.maxPreviewDiffs)) {
+    normalized.maxPreviewDiffs = record.maxPreviewDiffs;
+  }
+
+  return normalized;
+}
+
 function buildTheme(config: CliRuntimeConfig): ThemeConfig | undefined {
   const hasBrandColor = typeof config.brandColor === 'string' && config.brandColor.trim().length > 0;
+  const themeColors = normalizeThemeColors(config.themeColors);
   const themePreference = typeof config.theme === 'string' ? config.theme.trim().toLowerCase() : '';
   const mode =
     themePreference === 'light' || themePreference === 'dark'
@@ -58,11 +113,21 @@ function buildTheme(config: CliRuntimeConfig): ThemeConfig | undefined {
         ? getSystemThemeMode()
         : undefined;
 
-  if (!mode && !hasBrandColor) return undefined;
+  const colors = themeColors ? { ...themeColors } : undefined;
+  if (hasBrandColor) {
+    const nextColors = colors || {};
+    nextColors.primary = config.brandColor?.trim();
+    return {
+      ...(mode ? { mode } : {}),
+      colors: nextColors,
+    };
+  }
+
+  if (!mode && !colors) return undefined;
 
   return {
     ...(mode ? { mode } : {}),
-    ...(hasBrandColor ? { colors: { primary: config.brandColor } } : {}),
+    ...(colors ? { colors } : {}),
   };
 }
 
@@ -83,6 +148,7 @@ const theme = buildTheme(runtimeConfig);
 const categories = normalizeCategories(runtimeConfig.categories);
 const defaultTab = normalizeDefaultTab(runtimeConfig.defaultTab);
 const showSearch = typeof runtimeConfig.showSearch === 'boolean' ? runtimeConfig.showSearch : true;
+const snapshotHistory = normalizeSnapshotHistory(runtimeConfig.snapshotHistory);
 
 createRoot(mountNode).render(
   <React.StrictMode>
@@ -95,6 +161,7 @@ createRoot(mountNode).render(
       categories={categories}
       showSearch={showSearch}
       theme={theme}
+      snapshotHistory={snapshotHistory}
     />
   </React.StrictMode>
 );

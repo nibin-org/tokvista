@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { 
     isTokenValue, 
+    normalizeTokenSetsRoot,
     parseNumericValue, 
     toCssVariable, 
     getFoundationTokenTree,
+    extractSemanticSet,
+    extractComponentSet,
     getContrastColor, 
     resolveTokenValue,
     createTokenMap,
@@ -66,6 +69,62 @@ describe('Core Utils', () => {
             const foundation = getFoundationTokenTree(source);
             expect((foundation as any).spacing).toBeDefined();
             expect((foundation as any).base).toBeUndefined();
+        });
+
+        it('should unwrap a single collection wrapper that contains foundation, semantic, and components sets', () => {
+            const source: any = {
+                tokens: {
+                    Foundation: {
+                        Foundation: {
+                            color: {
+                                primary: {
+                                    '500': { value: '#3b82f6', type: 'color' }
+                                }
+                            }
+                        },
+                        Semantic: {
+                            color: {
+                                primary: { value: '{Foundation.color.primary.500}', type: 'color' }
+                            }
+                        },
+                        Components: {
+                            Button: {
+                                primary: {
+                                    background: { value: '{Semantic.color.primary}', type: 'color' }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const normalized = normalizeTokenSetsRoot(source);
+            expect((normalized as any).Foundation).toBeDefined();
+            expect((normalized as any).Semantic).toBeDefined();
+            expect((normalized as any).Components).toBeDefined();
+
+            const foundation = getFoundationTokenTree(source);
+            const semantic = extractSemanticSet(source);
+            const components = extractComponentSet(source);
+
+            expect((foundation as any).color.primary['500']).toBeDefined();
+            expect((semantic as any).color.primary).toBeDefined();
+            expect((components as any).Button.primary.background).toBeDefined();
+        });
+
+        it('should merge mode-like semantic wrappers', () => {
+            const source: any = {
+                Semantic: {
+                    'Mode 1': {
+                        color: {
+                            primary: { value: '{Foundation.color.primary.500}', type: 'color' }
+                        }
+                    }
+                }
+            };
+
+            const semantic = extractSemanticSet(source);
+            expect((semantic as any).color.primary).toBeDefined();
         });
     });
 

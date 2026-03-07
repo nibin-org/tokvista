@@ -101,9 +101,11 @@ export interface TokvistaConfig {
   tokens?: string;
   theme?: TokvistaThemePreference;
   brandColor?: string;
+  themeColors?: ThemeColors;
   categories?: TokenCategory[];
   defaultTab?: TokenCategory;
   showSearch?: boolean;
+  snapshotHistory?: SnapshotHistoryOptions;
 }
 
 // Component props

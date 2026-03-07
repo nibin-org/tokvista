@@ -1,5 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
-import { deepMergeRecords, getFoundationTokenTree } from './core';
+import { getFoundationTokenTree, extractSemanticSet, extractComponentSet } from './core';
 
 export interface ExportableToken {
   name: string;
@@ -120,38 +120,26 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
   }
 
   // 2. Semantic Tokens
-  const semanticSet = tokens['Semantic/Value'] as any;
-  if (semanticSet) {
-    const semantic = semanticSet;
-    ['fill', 'stroke', 'text'].forEach(cat => {
-      const group = semantic[cat];
-      const walkSemantic = (node: unknown, path: string[] = []) => {
-        if (!isRecord(node)) return;
-        if (isTokenLike(node) && node.value !== null) {
-          const suffix = path.join('-');
-          const name = suffix ? `${cat}-${suffix}` : cat;
-          pushToken(name, `--${name}`, String(node.value), 'color', 'Semantic');
-          return;
-        }
-        Object.entries(node).forEach(([key, value]) => {
-          walkSemantic(value, [...path, key]);
-        });
-      };
-      if (isRecord(group)) {
-        walkSemantic(group);
+  const semanticSet = extractSemanticSet(tokens);
+  if (Object.keys(semanticSet).length > 0) {
+    const walkSemantic = (node: unknown, path: string[] = []) => {
+      if (!isRecord(node)) return;
+      if (isTokenLike(node) && node.value !== null) {
+        const name = path.join('-');
+        const tokenType = determineType(name, node.type);
+        pushToken(name, `--${name}`, String(node.value), tokenType, 'Semantic');
+        return;
       }
-    });
+      Object.entries(node).forEach(([key, value]) => {
+        walkSemantic(value, [...path, key]);
+      });
+    };
+
+    walkSemantic(semanticSet);
   }
 
-  // 3. Component Tokens — merge all Components/* sets dynamically
-  const mergedComponents = Object.entries(tokens)
-    .filter(([key]) => key.startsWith('Components/'))
-    .reduce((acc, [, val]) => {
-      if (val && typeof val === 'object') {
-        return deepMergeRecords(acc, val as Record<string, unknown>) as Record<string, any>;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+  // 3. Component Tokens — accept any supported structured shape
+  const mergedComponents = extractComponentSet(tokens) as Record<string, any>;
 
   Object.entries(mergedComponents).forEach(([compName, comp]: [string, any]) => {
     if (!isRecord(comp)) return;

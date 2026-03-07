@@ -6,7 +6,7 @@ import { ColorDisplay } from './ColorDisplay';
 import { SpacingDisplay } from './SpacingDisplay';
 import { SizeDisplay } from './SizeDisplay';
 import { RadiusDisplay } from './RadiusDisplay';
-import { createTokenMap, getFoundationTokenTree } from '../utils/core';
+import { createTokenMap, getFoundationTokenTree, extractSemanticSet } from '../utils/core';
 
 /**
  * Spacing - Standalone component to display spacing tokens
@@ -33,14 +33,16 @@ export function Colors({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     const { base, fill, stroke, text } = useMemo(() => {
         const foundation = getFoundationTokenTree(tokens);
         const baseGroup = (foundation as any).base || {};
-        const semantic = (tokens["Semantic/Value"] as any) || {};
+        const semantic = extractSemanticSet(tokens) as any;
         const hasBaseGroup = typeof baseGroup === 'object' && baseGroup !== null && Object.keys(baseGroup).length > 0;
+        const semanticColorRoot = semantic.color || semantic.colors || {};
+        const semanticHasExplicitChannels = semantic.fill || semantic.stroke || semantic.text;
 
         return {
             base: baseGroup.color || baseGroup.colors || (hasBaseGroup ? baseGroup : undefined) || (foundation as any).color || (foundation as any).colors || foundation || {},
-            fill: semantic.fill || {},
-            stroke: semantic.stroke || {},
-            text: semantic.text || {}
+            fill: semantic.fill || semanticColorRoot || {},
+            stroke: semantic.stroke || (semanticHasExplicitChannels ? {} : semanticColorRoot) || {},
+            text: semantic.text || (semanticHasExplicitChannels ? {} : semanticColorRoot) || {}
         };
     }, [tokens]);
 

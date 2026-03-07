@@ -16,6 +16,122 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function canonicalKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function hasStructuredSets(record: Record<string, unknown>): boolean {
+  if (
+    Object.keys(record).some((key) => {
+      const normalized = canonicalKey(key);
+      return normalized === 'foundationvalue' || normalized === 'semanticvalue' || normalized.startsWith('components');
+    })
+  ) {
+    return true;
+  }
+
+  return Object.keys(record).some((key) => {
+    const normalized = canonicalKey(key);
+    return normalized === 'foundation' || normalized === 'semantic' || normalized === 'components';
+  });
+}
+
+function getCaseInsensitiveRecord(
+  record: Record<string, unknown>,
+  ...candidateNames: string[]
+): Record<string, unknown> | null {
+  const candidates = new Set(candidateNames.map((name) => canonicalKey(name)));
+  for (const [key, value] of Object.entries(record)) {
+    if (!isRecord(value)) continue;
+    if (candidates.has(canonicalKey(key))) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function isModeLikeKey(key: string): boolean {
+  const normalized = canonicalKey(key);
+  return (
+    normalized === 'value' ||
+    normalized === 'default' ||
+    normalized === 'mode' ||
+    /^mode\d+$/.test(normalized) ||
+    /^theme\d+$/.test(normalized)
+  );
+}
+
+function mergeModeRecords(record: Record<string, unknown>): Record<string, unknown> {
+  const modeEntries = Object.entries(record).filter(([key, value]) => isModeLikeKey(key) && isRecord(value));
+  if (modeEntries.length === 0) {
+    return record;
+  }
+
+  return modeEntries.reduce((acc, [, value]) => {
+    return deepMergeRecords(acc, value as Record<string, unknown>);
+  }, {} as Record<string, unknown>);
+}
+
+function getPrefixedRecord(record: Record<string, unknown>, prefix: 'foundation' | 'semantic'): Record<string, unknown> | null {
+  const target = `${prefix}value`;
+  for (const [key, value] of Object.entries(record)) {
+    if (!isRecord(value)) continue;
+    if (canonicalKey(key) === target) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function getDirectCollectionRecord(
+  record: Record<string, unknown>,
+  collectionName: 'foundation' | 'semantic'
+): Record<string, unknown> | null {
+  const direct = getCaseInsensitiveRecord(record, collectionName);
+  if (!direct) {
+    return null;
+  }
+
+  const valueRecord = getCaseInsensitiveRecord(direct, 'value');
+  if (valueRecord) {
+    return mergeModeRecords(valueRecord);
+  }
+
+  return mergeModeRecords(direct);
+}
+
+function getComponentsRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const mergedFromPrefixed = Object.entries(record)
+    .filter(([key, value]) => isRecord(value) && canonicalKey(key).startsWith('components'))
+    .reduce((acc, [, value]) => {
+      return deepMergeRecords(acc, value as Record<string, unknown>);
+    }, {} as Record<string, unknown>);
+
+  const directComponents = getCaseInsensitiveRecord(record, 'components');
+  if (!directComponents) {
+    return mergedFromPrefixed;
+  }
+
+  return deepMergeRecords(mergedFromPrefixed, mergeModeRecords(directComponents));
+}
+
+export function normalizeTokenSetsRoot(input: unknown): Record<string, unknown> {
+  if (!isRecord(input)) return {};
+
+  const directRoot = isRecord((input as Record<string, unknown>).tokens)
+    ? ((input as Record<string, unknown>).tokens as Record<string, unknown>)
+    : input;
+  const candidateKeys = Object.keys(directRoot).filter((key) => !key.startsWith('$'));
+  if (candidateKeys.length === 1) {
+    const inner = directRoot[candidateKeys[0]];
+    if (isRecord(inner) && hasStructuredSets(inner)) {
+      return inner;
+    }
+  }
+
+  return directRoot;
+}
+
 /**
  * Parse a numeric value from a CSS dimension string
  */
@@ -49,10 +165,11 @@ export function toCssVariable(path: string, prefix: string = ''): string {
  * If Foundation/Value only contains a single "base" wrapper, unwrap it.
  */
 export function getFoundationTokenTree(tokens: unknown): NestedTokens {
+  const normalizedRoot = normalizeTokenSetsRoot(tokens);
   const source =
-    isRecord(tokens) && isRecord((tokens as Record<string, unknown>)['Foundation/Value'])
-      ? (tokens as Record<string, unknown>)['Foundation/Value']
-      : tokens;
+    getPrefixedRecord(normalizedRoot, 'foundation') ||
+    getDirectCollectionRecord(normalizedRoot, 'foundation') ||
+    normalizedRoot;
 
   if (!isRecord(source)) return {};
 
@@ -65,6 +182,23 @@ export function getFoundationTokenTree(tokens: unknown): NestedTokens {
   }
 
   return source as NestedTokens;
+}
+
+export function extractFoundationSet(tokens: unknown): NestedTokens {
+  return getFoundationTokenTree(tokens);
+}
+
+export function extractSemanticSet(tokens: unknown): NestedTokens {
+  const normalizedRoot = normalizeTokenSetsRoot(tokens);
+  const semantic =
+    getPrefixedRecord(normalizedRoot, 'semantic') ||
+    getDirectCollectionRecord(normalizedRoot, 'semantic');
+  return (semantic || {}) as NestedTokens;
+}
+
+export function extractComponentSet(tokens: unknown): Record<string, unknown> {
+  const normalizedRoot = normalizeTokenSetsRoot(tokens);
+  return getComponentsRecord(normalizedRoot);
 }
 
 /**
@@ -92,9 +226,10 @@ export function findAllTokens(obj: any, path: string[] = []): Array<{ path: stri
  */
 export function createTokenMap(tokens: any): Record<string, string> {
   const map: Record<string, string> = {};
+  const normalizedRoot = normalizeTokenSetsRoot(tokens);
   
   // Scan all top-level keys except metadata
-  Object.entries(tokens).forEach(([setKey, setData]) => {
+  Object.entries(normalizedRoot).forEach(([setKey, setData]) => {
     if (['global', '$themes', '$metadata'].includes(setKey)) return;
     const allTokens = findAllTokens(setData);
     allTokens.forEach(({ path, token }) => {
@@ -103,6 +238,18 @@ export function createTokenMap(tokens: any): Record<string, string> {
       map[`${setKey}.${path}`] = typeof token.value === 'string' ? token.value : String(token.value);
     });
   });
+
+  const addStructuredEntries = (prefix: string, value: unknown) => {
+    const allTokens = findAllTokens(value);
+    allTokens.forEach(({ path, token }) => {
+      const tokenValue = typeof token.value === 'string' ? token.value : String(token.value);
+      map[`${prefix}.${path}`] = tokenValue;
+    });
+  };
+
+  addStructuredEntries('Foundation', extractFoundationSet(normalizedRoot));
+  addStructuredEntries('Semantic', extractSemanticSet(normalizedRoot));
+  addStructuredEntries('Components', extractComponentSet(normalizedRoot));
 
   return map;
 }

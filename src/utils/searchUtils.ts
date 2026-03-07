@@ -1,5 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
-import { createTokenMap, resolveTokenValue, deepMergeRecords, getFoundationTokenTree } from './core';
+import { createTokenMap, resolveTokenValue, getFoundationTokenTree, extractSemanticSet, extractComponentSet } from './core';
 
 export interface SearchableToken {
   id: string;
@@ -145,40 +145,35 @@ function indexFoundationTokens(baseTokens: NestedTokens, tokenMap: Record<string
 }
 
 /**
- * Index semantic tokens (fill, stroke, text)
+ * Index semantic tokens using generic nested groups, not only fill/stroke/text.
  */
 function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>, tokenMap: Record<string, string>): SearchableToken[] {
   const tokens: SearchableToken[] = [];
-  
-  ['fill', 'stroke', 'text'].forEach(category => {
-    const categoryTokens = semanticTokens[category];
-    if (!categoryTokens) return;
 
-    const walk = (node: unknown, path: string[] = []) => {
-      if (!isRecord(node)) return;
-      if (isTokenLike(node) && node.value !== null) {
-        const suffix = path.join('-');
-        const name = suffix ? `${category}-${suffix}` : category;
-        const value = String(node.value);
-        tokens.push({
-          id: `semantic-${name}`,
-          name,
-          value,
-          cssVariable: `--${name}`,
-          type: 'color',
-          category: 'semantic',
-          preview: resolveTokenValue(value, tokenMap),
-        });
-        return;
-      }
-      Object.entries(node).forEach(([key, value]) => {
-        walk(value, [...path, key]);
+  const walk = (node: unknown, path: string[] = []) => {
+    if (!isRecord(node)) return;
+    if (isTokenLike(node) && node.value !== null) {
+      const name = path.join('-');
+      const value = String(node.value);
+      const type = determineTokenType(name, node.type);
+      tokens.push({
+        id: `semantic-${name}`,
+        name,
+        value,
+        cssVariable: `--${name}`,
+        type,
+        category: 'semantic',
+        preview: type === 'color' ? resolveTokenValue(value, tokenMap) : value,
       });
-    };
+      return;
+    }
+    Object.entries(node).forEach(([key, value]) => {
+      walk(value, [...path, key]);
+    });
+  };
 
-    walk(categoryTokens);
-  });
-  
+  walk(semanticTokens);
+
   return tokens;
 }
 
@@ -269,20 +264,13 @@ export function indexTokens(tokens: FigmaTokens): SearchableToken[] {
   }
   
   // Index semantic tokens
-  const semanticSet = tokens['Semantic/Value'] as any;
-  if (semanticSet) {
+  const semanticSet = extractSemanticSet(tokens);
+  if (Object.keys(semanticSet).length > 0) {
     searchableTokens.push(...indexSemanticTokens(semanticSet as Record<string, NestedTokens>, tokenMap));
   }
   
   // Index component tokens — merge all Components/* sets dynamically
-  const mergedComponents = Object.entries(tokens)
-    .filter(([key]) => key.startsWith('Components/'))
-    .reduce((acc, [, val]) => {
-      if (val && typeof val === 'object') {
-        return deepMergeRecords(acc, val as Record<string, unknown>) as Record<string, any>;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+  const mergedComponents = extractComponentSet(tokens) as Record<string, any>;
 
   if (Object.keys(mergedComponents).length > 0) {
     searchableTokens.push(...indexComponentTokens(mergedComponents, tokenMap));
