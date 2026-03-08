@@ -90,11 +90,11 @@ describe('Export Utils', () => {
     });
 
     describe('generateJS', () => {
-        it('should generate valid JavaScript object string', () => {
+        it('should generate valid JavaScript object string with resolved aliases', () => {
             const js = generateJS(mockTokens);
             expect(js).toContain('export const tokens = {');
             expect(js).toContain('"base-blue-50": "#3b82f6"');
-            expect(js).toContain('"fill-primary": "{base.blue.50}"'); // Raw for now
+            expect(js).toContain('"fill-primary": "#3b82f6"'); // Resolved alias
         });
     });
 

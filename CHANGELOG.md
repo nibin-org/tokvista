@@ -7,17 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **JS export alias resolution**: generateJS now resolves token aliases to their final values instead of exporting raw `{path.to.token}` strings
+- **Color contrast for non-hex values**: getContrastColor now supports rgb(), rgba(), hsl(), hsla() formats using canvas API parsing
+- **Code deduplication**: Centralized isRecord, isTokenLike, normalizeColorPath, and determineTokenType helpers in core.ts to eliminate duplication across exportUtils and searchUtils
+- **Type safety**: Fixed StandaloneTokenProps.onTokenClick to use proper typed union instead of `any`
+- **Type casting**: Added proper type casts in searchUtils to ensure determineTokenType return values match SearchableToken['type'] union
+- **CLI shutdown**: Now exits reliably on `Ctrl+C`/`SIGTERM` by closing active connections and forcing socket cleanup on timeout
+- **CLI browser auto-open**: Now handles async spawn failures correctly (for example, missing `xdg-open`) and falls back with a clear warning
+- **Search modal**: Debounced search effect now skips updates while closed, eliminating React `act(...)` warning noise in tests
+- **Alias resolution**: Removed ambiguous fuzzy endsWith matching in resolveTokenValue to prevent incorrect resolution with short alias paths
+- **Token type fallback**: determineTokenType already returns 'component' as fallback, matching SearchableToken type union
+
 ### Changed
 - Fonts: Default Google Fonts loading is now optional via `loadDefaultFonts`; users can pass `fontFamilySans` / `fontFamilyMono` to match their app fonts.
 - Demo: Updated to show how to load and pass custom fonts.
 - Root `npm run dev` now runs postbuild on each successful watch rebuild, so `dist/styles.css` stays in sync for local-linked consumers.
 - Demo `basePath`/`assetPrefix` are now enabled only for production builds (`/tokvista`), while local dev uses root paths.
 - TokenDocumentation now includes an **All Tokens** tab so arbitrary JSON token structures are visible even without `Foundation/Value` or `Semantic/Value` sections.
-
-### Fixed
-- CLI shutdown now exits reliably on `Ctrl+C`/`SIGTERM` by closing active connections and forcing socket cleanup on timeout.
-- CLI browser auto-open now handles async spawn failures correctly (for example, missing `xdg-open`) and falls back with a clear warning.
-- Search modal debounced search effect now skips updates while closed, eliminating React `act(...)` warning noise in tests.
+- **Tailwind export**: Added size token support in generateTailwind width configuration
 
 ### Planned
 - Animation tokens support

@@ -3,28 +3,54 @@ import { findAllTokens, resolveTokenValue, toCssVariable } from './core';
 
 /**
  * Get text color (black or white) based on background luminance
+ * Supports hex, rgb(), rgba(), hsl(), hsla() color formats
  */
-export function getContrastColor(hexColor: string): 'black' | 'white' {
-  if (!hexColor || typeof hexColor !== 'string' || !hexColor.startsWith('#')) return 'black';
+export function getContrastColor(color: string): 'black' | 'white' {
+  if (!color || typeof color !== 'string') return 'black';
   
-  // Remove # if present
-  const hex = hexColor.replace('#', '');
+  const normalized = color.trim();
   
-  // Handle 3-character hex
-  let fullHex = hex;
-  if (hex.length === 3) {
-    fullHex = hex.split('').map(char => char + char).join('');
+  // Try to parse as hex
+  if (normalized.startsWith('#')) {
+    const hex = normalized.replace('#', '');
+    let fullHex = hex;
+    if (hex.length === 3) {
+      fullHex = hex.split('').map(char => char + char).join('');
+    }
+    const r = parseInt(fullHex.substring(0, 2), 16);
+    const g = parseInt(fullHex.substring(2, 4), 16);
+    const b = parseInt(fullHex.substring(4, 6), 16);
+    
+    if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.5 ? 'black' : 'white';
+    }
   }
   
-  // Handle 8-character hex (with alpha) - just take first 6
-  const r = parseInt(fullHex.substring(0, 2), 16);
-  const g = parseInt(fullHex.substring(2, 4), 16);
-  const b = parseInt(fullHex.substring(4, 6), 16);
+  // Try to parse CSS color using browser API
+  if (typeof document !== 'undefined') {
+    try {
+      const ctx = document.createElement('canvas').getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = normalized;
+        const computed = ctx.fillStyle;
+        if (computed.startsWith('#')) {
+          return getContrastColor(computed);
+        }
+        // Parse rgb/rgba format
+        const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (match) {
+          const r = parseInt(match[1]);
+          const g = parseInt(match[2]);
+          const b = parseInt(match[3]);
+          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          return luminance > 0.5 ? 'black' : 'white';
+        }
+      }
+    } catch {}
+  }
   
-  // Calculate relative luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
-  return luminance > 0.5 ? 'black' : 'white';
+  return 'black';
 }
 
 /**

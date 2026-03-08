@@ -1,5 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
-import { getFoundationTokenTree, extractSemanticSet, extractComponentSet } from './core';
+import { getFoundationTokenTree, extractSemanticSet, extractComponentSet, createTokenMap, resolveTokenValue, isRecord, isTokenLike, normalizeColorPath, determineTokenType } from './core';
 
 export interface ExportableToken {
   name: string;
@@ -9,30 +9,11 @@ export interface ExportableToken {
   category: string;
 }
 
-type TokenLike = {
-  value: string | number;
-  type?: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isTokenLike(value: unknown): value is TokenLike {
-  return isRecord(value) && 'value' in value;
-}
-
-function normalizeColorPath(path: string[]): string[] {
-  const wrappers = new Set(['color', 'colors', 'palette', 'palettes', 'base', 'foundation', 'value']);
-  const filtered = path.filter(part => !wrappers.has(part.toLowerCase()));
-  return filtered.length > 0 ? filtered : path;
-}
-
 /**
  * Formats a token value for export. 
  * Converts aliases like {base.color.50} to var(--base-color-50)
  */
-function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string {
+function formatTokenValue(value: string, format: 'css' | 'scss' | 'js', tokenMap?: Record<string, string>): string {
   if (typeof value !== 'string') return String(value);
   
   // Check if it's an alias {path.to.token}
@@ -48,7 +29,7 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
       const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => afterBase.includes(k));
       
       if (isSpatial) {
-        cleanPath = path.replace(/\./g, '-').slice(5); // Remove 'base-'
+        cleanPath = cleanPath.slice(5); // Remove 'base-'
       }
     }
     
@@ -56,6 +37,9 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
       return `var(--${cleanPath})`;
     } else if (format === 'scss') {
       return `$${cleanPath}`;
+    } else if (format === 'js' && tokenMap) {
+      // Resolve alias for JS export
+      return resolveTokenValue(value, tokenMap);
     }
   }
   
@@ -68,24 +52,6 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
 export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
   const flattened: ExportableToken[] = [];
 
-  const determineType = (name: string, tokenType?: string) => {
-    const n = name.toLowerCase();
-    const rawType = String(tokenType || '').toLowerCase();
-
-    if (rawType === 'color') return 'color';
-    if (rawType === 'spacing') return 'spacing';
-    if (rawType === 'sizing' || rawType === 'size') return 'size';
-    if (rawType === 'borderradius' || rawType === 'radius') return 'radius';
-    if (rawType.includes('font') || rawType.includes('line')) return 'typography';
-
-    if (n.includes('color') || n.includes('fill') || n.includes('stroke') || n.includes('text') || n.includes('bg')) return 'color';
-    if (n.includes('space') || n.includes('spacing') || n.includes('gap') || n.includes('padding') || n.includes('margin')) return 'spacing';
-    if (n.includes('size') || n.includes('width') || n.includes('height')) return 'size';
-    if (n.includes('radius') || n.includes('round')) return 'radius';
-    if (n.includes('font') || n.includes('line-height') || n.includes('typography') || n.includes('letter')) return 'typography';
-    return 'dimension';
-  };
-
   const pushToken = (name: string, cssVariable: string, value: string, type: string, category: string) => {
     flattened.push({ name, cssVariable, value, type, category });
   };
@@ -97,7 +63,7 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
 
     if (isTokenLike(node) && node.value !== null) {
       const joinedPath = path.join('-');
-      const tokenType = determineType(joinedPath, node.type);
+      const tokenType = determineTokenType(joinedPath, node.type);
       const value = String(node.value);
 
       if (tokenType === 'color') {
@@ -126,7 +92,7 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
       if (!isRecord(node)) return;
       if (isTokenLike(node) && node.value !== null) {
         const name = path.join('-');
-        const tokenType = determineType(name, node.type);
+        const tokenType = determineTokenType(name, node.type);
         pushToken(name, `--${name}`, String(node.value), tokenType, 'Semantic');
         return;
       }
@@ -138,7 +104,7 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
     walkSemantic(semanticSet);
   }
 
-  // 3. Component Tokens — accept any supported structured shape
+  // 3. Component Tokens
   const mergedComponents = extractComponentSet(tokens) as Record<string, any>;
 
   Object.entries(mergedComponents).forEach(([compName, comp]: [string, any]) => {
@@ -148,7 +114,7 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
       if (!isRecord(node)) return;
       if (isTokenLike(node) && node.value !== null) {
         const suffix = path.join('-');
-        const type = determineType(suffix, node.type);
+        const type = determineTokenType(suffix, node.type);
         const tokenType = type === 'size' ? 'size' : type;
         const name = suffix ? `${compName}-${suffix}` : compName;
         pushToken(name, `--${name}`, String(node.value), tokenType, `Component (${compName})`);
@@ -233,13 +199,12 @@ export function generateSCSS(tokens: FigmaTokens): string {
  */
 export function generateJS(tokens: FigmaTokens): string {
   const flattened = getFlattenedTokens(tokens);
+  const tokenMap = createTokenMap(tokens);
   const jsObj: Record<string, string> = {};
   
   flattened.forEach(t => {
-    // For JS, we either resolve the alias or return raw value
-    // If it's an alias {path.to.token}, we try to find the final value
-    // For now, let's just use the raw value but we could add a resolver here
-    jsObj[t.name] = t.value;
+    // Resolve aliases to their final values
+    jsObj[t.name] = formatTokenValue(t.value, 'js', tokenMap);
   });
 
   return `export const tokens = ${JSON.stringify(jsObj, null, 2)};`;
@@ -256,6 +221,7 @@ export function generateTailwind(tokens: FigmaTokens): string {
       extend: {
         colors: {},
         spacing: {},
+        width: {},
         borderRadius: {},
         fontSize: {},
       }
@@ -270,6 +236,8 @@ export function generateTailwind(tokens: FigmaTokens): string {
       config.theme.extend.colors[cleanName] = `var(${t.cssVariable})`;
     } else if (t.type === 'spacing') {
       config.theme.extend.spacing[cleanName] = `var(${t.cssVariable})`;
+    } else if (t.type === 'size') {
+      config.theme.extend.width[cleanName] = `var(${t.cssVariable})`;
     } else if (t.type === 'radius') {
       config.theme.extend.borderRadius[cleanName] = `var(${t.cssVariable})`;
     } else if (t.type === 'typography' && t.name.includes('font-size')) {
@@ -280,6 +248,7 @@ export function generateTailwind(tokens: FigmaTokens): string {
   // Clean up empty objects
   if (Object.keys(config.theme.extend.colors).length === 0) delete config.theme.extend.colors;
   if (Object.keys(config.theme.extend.spacing).length === 0) delete config.theme.extend.spacing;
+  if (Object.keys(config.theme.extend.width).length === 0) delete config.theme.extend.width;
   if (Object.keys(config.theme.extend.borderRadius).length === 0) delete config.theme.extend.borderRadius;
   if (Object.keys(config.theme.extend.fontSize).length === 0) delete config.theme.extend.fontSize;
 

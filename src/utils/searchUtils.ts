@@ -1,5 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
-import { createTokenMap, resolveTokenValue, getFoundationTokenTree, extractSemanticSet, extractComponentSet } from './core';
+import { createTokenMap, resolveTokenValue, getFoundationTokenTree, extractSemanticSet, extractComponentSet, isRecord, isTokenLike, normalizeColorPath, determineTokenType } from './core';
 
 export interface SearchableToken {
   id: string;
@@ -15,25 +15,6 @@ export interface SearchResult {
   token: SearchableToken;
   score: number;
   matches: string[];
-}
-
-type TokenLike = {
-  value: string | number;
-  type?: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isTokenLike(value: unknown): value is TokenLike {
-  return isRecord(value) && 'value' in value;
-}
-
-function normalizeColorPath(path: string[]): string[] {
-  const wrappers = new Set(['color', 'colors', 'palette', 'palettes', 'base', 'foundation', 'value']);
-  const filtered = path.filter(part => !wrappers.has(part.toLowerCase()));
-  return filtered.length > 0 ? filtered : path;
 }
 
 /**
@@ -103,36 +84,22 @@ function indexFoundationTokens(baseTokens: NestedTokens, tokenMap: Record<string
   const walk = (node: unknown, path: string[] = []) => {
     if (!isRecord(node)) return;
 
-    if (isTokenLike(node) && node.value !== null) {
-      const pathJoined = path.join('-');
-      const rawType = determineTokenType(pathJoined, node.type);
-      const value = String(node.value);
-
-      if (rawType === 'color') {
-        const colorPath = normalizeColorPath(path);
-        const name = colorPath.join('-');
+      if (isTokenLike(node) && node.value !== null) {
+        const suffix = path.join('-');
+        const value = String(node.value);
+        const type = determineTokenType(suffix, node.type) as SearchableToken['type'];
+        const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
         tokens.push({
-          id: `foundation-${name}`,
-          name,
+          id: `foundation-${suffix}`,
+          name: suffix,
           value,
-          cssVariable: `--base-${name}`,
-          type: 'color',
+          cssVariable: `--${suffix}`,
+          type,
           category: 'foundation',
-          preview: resolveTokenValue(value, tokenMap),
+          preview,
         });
-      } else {
-        tokens.push({
-          id: `foundation-${pathJoined}`,
-          name: pathJoined,
-          value,
-          cssVariable: `--${pathJoined}`,
-          type: rawType,
-          category: 'foundation',
-          preview: value,
-        });
+        return;
       }
-      return;
-    }
 
     Object.entries(node).forEach(([key, value]) => {
       walk(value, [...path, key]);
@@ -155,7 +122,7 @@ function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>, token
     if (isTokenLike(node) && node.value !== null) {
       const name = path.join('-');
       const value = String(node.value);
-      const type = determineTokenType(name, node.type);
+      const type = determineTokenType(name, node.type) as SearchableToken['type'];
       tokens.push({
         id: `semantic-${name}`,
         name,
@@ -192,7 +159,7 @@ function indexComponentTokens(components: Record<string, any>, tokenMap: Record<
       if (isTokenLike(node) && node.value !== null) {
         const suffix = path.join('-');
         const value = String(node.value);
-        const type = determineTokenType(suffix, node.type);
+        const type = determineTokenType(suffix, node.type) as SearchableToken['type'];
         const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
         tokens.push({
           id: `component-${componentName}-${suffix}`,
@@ -215,39 +182,6 @@ function indexComponentTokens(components: Record<string, any>, tokenMap: Record<
   });
   
   return tokens;
-}
-
-/**
- * Determine token type from family/dimension name
- */
-function determineTokenType(name: string, tokenType?: string): SearchableToken['type'] {
-  const nameLower = name.toLowerCase();
-  const rawType = String(tokenType || '').toLowerCase();
-
-  if (rawType === 'color') return 'color';
-  if (rawType === 'spacing') return 'spacing';
-  if (rawType === 'sizing' || rawType === 'size') return 'size';
-  if (rawType === 'borderradius' || rawType === 'radius') return 'radius';
-  if (rawType.includes('font') || rawType.includes('line')) return 'typography';
-
-  if (nameLower.includes('color') || nameLower.includes('fill') || nameLower.includes('stroke') ||
-      ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'cyan', 'gray', 'slate', 'teal', 'pink', 'white', 'black', 'coolgray'].some(c => nameLower.includes(c))) {
-    return 'color';
-  }
-  if (nameLower.includes('space') || nameLower.includes('spacing')) {
-    return 'spacing';
-  }
-  if (nameLower.includes('size')) {
-    return 'size';
-  }
-  if (nameLower.includes('radius')) {
-    return 'radius';
-  }
-  if (nameLower.includes('font') || nameLower.includes('line-height') || nameLower.includes('typography')) {
-    return 'typography';
-  }
-  
-  return 'component';
 }
 
 /**

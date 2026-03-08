@@ -12,7 +12,10 @@ export function isTokenValue(obj: unknown): obj is TokenValue {
   );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/**
+ * Shared helper: Check if value is a record object
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
@@ -275,17 +278,7 @@ export function resolveTokenValue(value: string, tokenMap: Record<string, string
     if (resolved !== undefined) {
       currentValue = resolved;
     } else {
-      // Try fuzzy match (if path in map ends with refPath)
-      let entry = Object.entries(tokenMap).find(([path]) => path.endsWith(refPath));
-      if (!entry && refPath.includes('.')) {
-        const withoutCollectionPrefix = refPath.slice(refPath.indexOf('.') + 1);
-        entry = Object.entries(tokenMap).find(([path]) => path.endsWith(withoutCollectionPrefix));
-      }
-      if (entry) {
-        currentValue = entry[1];
-      } else {
-        break;
-      }
+      break;
     }
     depth++;
   }
@@ -361,4 +354,41 @@ export function deepMergeRecords(
   });
 
   return target;
+}
+
+/**
+ * Shared helper: Check if value is a token-like object
+ */
+export function isTokenLike(value: unknown): value is { value: string | number; type?: string } {
+  return isRecord(value) && 'value' in value;
+}
+
+/**
+ * Shared helper: Normalize color path by removing wrapper keys
+ */
+export function normalizeColorPath(path: string[]): string[] {
+  const wrappers = new Set(['color', 'colors', 'palette', 'palettes', 'base', 'foundation', 'value']);
+  const filtered = path.filter(part => !wrappers.has(part.toLowerCase()));
+  return filtered.length > 0 ? filtered : path;
+}
+
+/**
+ * Shared helper: Determine token type from name and explicit type
+ */
+export function determineTokenType(name: string, tokenType?: string): string {
+  const n = name.toLowerCase();
+  const rawType = String(tokenType || '').toLowerCase();
+
+  if (rawType === 'color') return 'color';
+  if (rawType === 'spacing') return 'spacing';
+  if (rawType === 'sizing' || rawType === 'size') return 'size';
+  if (rawType === 'borderradius' || rawType === 'radius') return 'radius';
+  if (rawType.includes('font') || rawType.includes('line')) return 'typography';
+
+  if (n.includes('color') || n.includes('fill') || n.includes('stroke') || n.includes('text') || n.includes('bg')) return 'color';
+  if (n.includes('space') || n.includes('spacing') || n.includes('gap') || n.includes('padding') || n.includes('margin')) return 'spacing';
+  if (n.includes('size') || n.includes('width') || n.includes('height')) return 'size';
+  if (n.includes('radius') || n.includes('round')) return 'radius';
+  if (n.includes('font') || n.includes('line-height') || n.includes('typography') || n.includes('letter')) return 'typography';
+  return 'component';
 }
