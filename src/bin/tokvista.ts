@@ -6,7 +6,8 @@ import type { Socket } from 'node:net';
 import path from 'node:path';
 import { createInterface, type Interface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
+import type { FigmaTokens, TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
+import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../utils/exportUtils';
 import { HotReloadServer } from './hotreload';
 import { watchFile } from './watcher';
 
@@ -41,7 +42,14 @@ interface InitCliOptions {
   startPreview: boolean;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions;
+interface ExportCliOptions {
+  command: 'export';
+  tokenFileArg: string;
+  format: 'css' | 'scss' | 'json' | 'tailwind';
+  output?: string;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -65,6 +73,7 @@ function printHelp() {
 Usage:
   tokvista [tokens.json] [--config tokvista.config.ts] [--port 3000] [--no-open]
   tokvista init [--force] [--port 3000] [--no-open] [--no-preview]
+  tokvista export <tokens.json> --format <css|scss|json|tailwind> [--output <file>]
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -73,6 +82,8 @@ Options:
   -c, --config      Path to TokVista config file
   -f, --force       Overwrite existing tokvista.config.ts (init only)
   -p, --port        Preferred server port (default: 3000)
+  --format          Export format: css, scss, json, tailwind (export only)
+  --output, -o      Output file path (export only)
   --no-open         Do not automatically open the browser
   --no-preview      Skip starting live preview after init
   -h, --help        Show this help message
@@ -210,7 +221,73 @@ function parseArgs(args: string[]): CliOptions {
   if (args[0] === 'init') {
     return parseInitArgs(args.slice(1));
   }
+  if (args[0] === 'export') {
+    return parseExportArgs(args.slice(1));
+  }
   return parseServeArgs(args);
+}
+
+function parseExportArgs(args: string[]): ExportCliOptions {
+  let tokenFileArg: string | undefined;
+  let format: 'css' | 'scss' | 'json' | 'tailwind' | undefined;
+  let output: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--format') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --format');
+      if (!['css', 'scss', 'json', 'tailwind'].includes(next)) {
+        throw new Error('Format must be: css, scss, json, or tailwind');
+      }
+      format = next as 'css' | 'scss' | 'json' | 'tailwind';
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--output' || arg === '-o') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --output');
+      output = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--format=')) {
+      const val = arg.slice('--format='.length);
+      if (!['css', 'scss', 'json', 'tailwind'].includes(val)) {
+        throw new Error('Format must be: css, scss, json, or tailwind');
+      }
+      format = val as 'css' | 'scss' | 'json' | 'tailwind';
+      continue;
+    }
+
+    if (arg.startsWith('--output=')) {
+      output = arg.slice('--output='.length);
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (tokenFileArg) {
+      throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    tokenFileArg = arg;
+  }
+
+  if (!tokenFileArg) throw new Error('Token file is required for export');
+  if (!format) throw new Error('--format is required (css, scss, json, or tailwind)');
+
+  return { command: 'export', tokenFileArg, format, output };
 }
 
 function formatTitleFromPackageName(packageName: string): string {
@@ -951,15 +1028,61 @@ async function runServeCommand(cwd: string, options: ServeCliOptions): Promise<v
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
+async function runExportCommand(cwd: string, options: ExportCliOptions): Promise<void> {
+  const resolvedTokenPath = path.resolve(cwd, options.tokenFileArg);
+  
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  const tokens = await readTokens(resolvedTokenPath) as FigmaTokens;
+  
+  let output: string;
+  let defaultFilename: string;
+  
+  switch (options.format) {
+    case 'css':
+      output = generateCSS(tokens);
+      defaultFilename = 'tokens.css';
+      break;
+    case 'scss':
+      output = generateSCSS(tokens);
+      defaultFilename = '_tokens.scss';
+      break;
+    case 'json':
+      output = generateJS(tokens);
+      defaultFilename = 'tokens.js';
+      break;
+    case 'tailwind':
+      output = generateTailwind(tokens);
+      defaultFilename = 'tailwind.config.js';
+      break;
+  }
+
+  if (options.output) {
+    const outputPath = path.resolve(cwd, options.output);
+    await writeFile(outputPath, output, 'utf8');
+    console.log(`Exported ${options.format} to ${outputPath}`);
+  } else {
+    console.log(output);
+  }
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
     const cwd = process.cwd();
+    
     if (options.command === 'init') {
       const serveOptions = await runInitCommand(cwd, options);
       if (serveOptions) {
         await runServeCommand(cwd, serveOptions);
       }
+      return;
+    }
+
+    if (options.command === 'export') {
+      await runExportCommand(cwd, options);
       return;
     }
 

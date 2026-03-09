@@ -90,6 +90,25 @@ npx tokvista tokens.json --port 4000
 npx tokvista tokens.json --no-open
 ```
 
+### Export Tokens
+
+```bash
+# Export to CSS
+npx tokvista export tokens.json --format css --output tokens.css
+
+# Export to SCSS
+npx tokvista export tokens.json --format scss --output _tokens.scss
+
+# Export to JavaScript
+npx tokvista export tokens.json --format json --output tokens.js
+
+# Export to Tailwind config
+npx tokvista export tokens.json --format tailwind --output tailwind.config.js
+
+# Print to stdout (for piping)
+npx tokvista export tokens.json --format css
+```
+
 ### Interactive Setup
 
 ```bash
@@ -118,8 +137,11 @@ Then run `npx tokvista` to use your config.
 |--------|-------------|
 | `tokvista [file]` | Token file path (default: `./tokens.json`) |
 | `tokvista init` | Interactive config setup |
+| `tokvista export <file> --format <type>` | Export tokens (css, scss, json, tailwind) |
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
+| `--format` | Export format (export only) |
+| `--output`, `-o` | Output file path (export only) |
 | `--no-open` | Don't open browser |
 | `--no-watch` | Disable live reload |
 | `--no-preview` | Skip preview after init |

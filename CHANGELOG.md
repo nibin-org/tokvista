@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-09
+
+### Added
+- **Export commands**: Generate CSS, SCSS, JSON, or Tailwind config from CLI for CI/CD pipelines
+  - `tokvista export tokens.json --format css --output tokens.css`
+  - `tokvista export tokens.json --format scss --output _tokens.scss`
+  - `tokvista export tokens.json --format json --output tokens.js`
+  - `tokvista export tokens.json --format tailwind --output tailwind.config.js`
+  - Output to file with `--output` or print to stdout for piping
+  - Resolves token aliases to final values in JSON exports
+  - Perfect for automated build pipelines and version control
+
 ## [1.5.2] - 2026-03-09
 
 ### Added
