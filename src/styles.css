@@ -5595,3 +5595,109 @@ body { margin: 0; }
     font-weight: 600;
     color: var(--ftd-text-sub);
 }
+
+/* Token Usage Section */
+.ftd-analytics-usage {
+  margin-top: 1.5rem;
+}
+
+.ftd-analytics-usage-hint {
+  font-size: 0.75rem;
+  color: var(--ftd-text-sub);
+  opacity: 0.7;
+}
+
+.ftd-analytics-usage-info {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--ftd-surface-raised);
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.ftd-analytics-usage-info p {
+    margin: 0 0 8px 0;
+    color: var(--ftd-text-secondary);
+}
+
+.ftd-analytics-usage-info code {
+    display: block;
+    padding: 8px 12px;
+    background: var(--ftd-surface-sunken);
+    border-radius: 4px;
+    font-family: var(--ftd-font-mono);
+    font-size: 12px;
+    color: var(--ftd-text-primary);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.ftd-analytics-usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ftd-analytics-usage-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--ftd-bg-subtle);
+  border-radius: 8px;
+  border: 1px solid var(--ftd-border);
+}
+
+.ftd-analytics-usage-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ftd-primary);
+  line-height: 1;
+}
+
+.ftd-analytics-usage-stat-unused {
+  color: var(--ftd-warning);
+}
+
+.ftd-analytics-usage-stat-label {
+  font-size: 0.75rem;
+  color: var(--ftd-text-sub);
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ftd-analytics-usage-unused {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ftd-border);
+}
+
+.ftd-analytics-usage-unused-header {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ftd-text-main);
+  margin-bottom: 0.75rem;
+}
+
+.ftd-analytics-usage-unused-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ftd-analytics-usage-unused-item {
+  font-size: 0.75rem;
+  font-family: var(--ftd-font-mono);
+  padding: 0.25rem 0.5rem;
+  background: var(--ftd-bg-subtle);
+  border: 1px solid var(--ftd-border);
+  border-radius: 4px;
+  color: var(--ftd-text-sub);
+}
+
+.ftd-analytics-usage-unused-more {
+  font-size: 0.75rem;
+  color: var(--ftd-text-sub);
+  padding: 0.25rem 0.5rem;
+  font-style: italic;
+}

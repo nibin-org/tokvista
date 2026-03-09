@@ -20,6 +20,7 @@ Zero configuration. Multiple formats. One command.
 
 - 🎨 **Beautiful visuals** - Colors, spacing, typography, and components
 - 📊 **Pre-ship checklist** - Analytics tab catches broken aliases, hardcoded values, and architecture issues before you publish
+- 🔥 **Token usage heatmap** - See which tokens are actually used in your codebase
 - 🔄 **Multi-format support** - Token Studio, W3C, Style Dictionary, Supernova, Figma API
 - 📋 **Smart copy** - CSS Variables, SCSS, or Tailwind with one click
 - 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token
@@ -125,6 +126,9 @@ npx tokvista scan tokens.json
 
 # Scan specific directory
 npx tokvista scan ./src --tokens tokens.json
+
+# JSON output for usage heatmap
+npx tokvista scan ./src --tokens tokens.json --format json > usage.json
 
 # Finds:
 # - Unused tokens (safe to remove)
@@ -256,8 +260,39 @@ npx tokvista build tokens.json --output-dir ./dist --skip-validation
   theme="dark"                // Optional: 'light' | 'dark' | 'system'
   brandColor="#6366f1"        // Optional: primary color
   onTokenClick={(token) => {}} // Optional: click handler
+  usageData={usageData}        // Optional: token usage from scan command
 />
 ```
+
+### Token Usage Heatmap
+
+Show which tokens are actually used in your codebase:
+
+```bash
+# Generate usage data
+npx tokvista scan ./src --tokens tokens.json --format json > usage.json
+```
+
+```tsx
+import { TokenDocumentation } from 'tokvista';
+import tokens from './tokens.json';
+import usageData from './usage.json';
+
+export default function DesignSystem() {
+  return (
+    <TokenDocumentation 
+      tokens={tokens}
+      usageData={usageData}
+    />
+  );
+}
+```
+
+The Analytics tab will show:
+- Used vs unused tokens
+- Adoption percentage
+- List of unused tokens (safe to delete)
+- Files scanned count
 
 ### Custom Fonts
 

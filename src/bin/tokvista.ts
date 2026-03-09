@@ -85,6 +85,7 @@ interface ScanCliOptions {
   command: 'scan';
   scanDir: string;
   tokenFileArg?: string;
+  format?: 'json' | 'text';
 }
 
 interface AnalyticsCliOptions {
@@ -471,6 +472,7 @@ function parseBuildArgs(args: string[]): BuildCliOptions {
 function parseScanArgs(args: string[]): ScanCliOptions {
   let scanDir: string | undefined;
   let tokenFileArg: string | undefined;
+  let format: 'json' | 'text' | undefined;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -493,6 +495,26 @@ function parseScanArgs(args: string[]): ScanCliOptions {
       continue;
     }
 
+    if (arg === '--format') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --format');
+      if (!['json', 'text'].includes(next)) {
+        throw new Error('Format must be: json or text');
+      }
+      format = next as 'json' | 'text';
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--format=')) {
+      const val = arg.slice('--format='.length);
+      if (!['json', 'text'].includes(val)) {
+        throw new Error('Format must be: json or text');
+      }
+      format = val as 'json' | 'text';
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown option: ${arg}`);
     }
@@ -506,7 +528,7 @@ function parseScanArgs(args: string[]): ScanCliOptions {
 
   if (!scanDir) throw new Error('Directory to scan or token file is required');
 
-  return { command: 'scan', scanDir, tokenFileArg };
+  return { command: 'scan', scanDir, tokenFileArg, format };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1533,12 +1555,18 @@ async function runScanCommand(cwd: string, options: ScanCliOptions): Promise<voi
       
       const tokens = await readTokens(tokenPath);
       
-      console.log(`\nScanning ${scanDir} for token usage...\n`);
-      
       const result = await scanTokenUsage(tokenPath, scanDir, tokens);
       
+      // JSON output
+      if (options.format === 'json') {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+      
+      // Text output
       const usagePercent = ((result.usedTokens.length / result.totalTokens) * 100).toFixed(1);
       
+      console.log(`\nScanning ${scanDir} for token usage...\n`);
       console.log(`📊 Token Usage Report\n`);
       console.log(`Files scanned: ${result.filesScanned}`);
       console.log(`Total tokens: ${result.totalTokens}`);
@@ -1608,12 +1636,18 @@ async function runScanCommand(cwd: string, options: ScanCliOptions): Promise<voi
 
   const tokens = await readTokens(tokenPath);
   
-  console.log(`\nScanning ${scanDir} for token usage...\n`);
-  
   const result = await scanTokenUsage(tokenPath, scanDir, tokens);
   
+  // JSON output
+  if (options.format === 'json') {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  
+  // Text output
   const usagePercent = ((result.usedTokens.length / result.totalTokens) * 100).toFixed(1);
   
+  console.log(`\nScanning ${scanDir} for token usage...\n`);
   console.log(`📊 Token Usage Report\n`);
   console.log(`Files scanned: ${result.filesScanned}`);
   console.log(`Total tokens: ${result.totalTokens}`);

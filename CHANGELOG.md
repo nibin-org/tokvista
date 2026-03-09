@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2025-01-30
+
+### Added
+- **Token Usage Heatmap**: Visual display of token adoption in your codebase
+  - Pass usage data from scan command to TokenDocumentation component
+  - Shows used vs unused tokens with adoption percentage
+  - Lists unused tokens (safe to remove)
+  - Displays files scanned count
+  - Integrates scan results with Analytics tab
+- **Scan JSON Output**: Added `--format json` option to scan command
+  - `tokvista scan ./src --tokens tokens.json --format json`
+  - Machine-readable output for automation
+  - Perfect for integrating with CI/CD or custom tooling
+
+### Usage Example
+```tsx
+import { TokenDocumentation } from 'tokvista';
+import tokens from './tokens.json';
+import usageData from './usage.json'; // From: tokvista scan ./src --tokens tokens.json --format json > usage.json
+
+<TokenDocumentation 
+  tokens={tokens}
+  usageData={usageData}
+/>
+```
+
 ## [1.14.1] - 2025-01-30
 
 ### Changed

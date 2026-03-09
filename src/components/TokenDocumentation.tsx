@@ -422,6 +422,7 @@ export function TokenDocumentation({
     onTokenClick,
     snapshotHistory,
     theme,
+    usageData,
 }: TokenDocumentationProps) {
     const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
     
@@ -1519,6 +1520,7 @@ export function TokenDocumentation({
                 {activeTab === 'analytics' && (
                     <AnalyticsTab
                         tokens={normalizedTokenSets as FigmaTokens}
+                        usageData={usageData}
                     />
                 )}
 

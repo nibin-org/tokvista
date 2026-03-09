@@ -140,6 +140,17 @@ export interface TokvistaConfig {
   snapshotHistory?: SnapshotHistoryOptions;
 }
 
+// Usage data from scan command
+export interface TokenUsageData {
+  totalTokens: number;
+  usedTokens: string[];
+  unusedTokens: string[];
+  hardcodedColors: Array<{ file: string; line: number; value: string }>;
+  hardcodedSpacing: Array<{ file: string; line: number; value: string }>;
+  tokenFileIssues: Array<{ path: string; issue: string; value: string }>;
+  filesScanned: number;
+}
+
 // Component props
 export interface TokenDocumentationProps {
   tokens: FigmaTokens;
@@ -155,6 +166,7 @@ export interface TokenDocumentationProps {
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
   snapshotHistory?: SnapshotHistoryOptions;
   theme?: ThemeConfig;
+  usageData?: TokenUsageData;
 }
 
 

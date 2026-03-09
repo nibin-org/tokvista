@@ -1,0 +1,886 @@
+{
+  "totalTokens": 318,
+  "usedTokens": [],
+  "unusedTokens": [
+    "base.blue.50",
+    "base.blue.100",
+    "base.blue.200",
+    "base.blue.300",
+    "base.blue.400",
+    "base.blue.500",
+    "base.blue.600",
+    "base.blue.700",
+    "base.blue.800",
+    "base.blue.900",
+    "base.green.50",
+    "base.green.100",
+    "base.green.300",
+    "base.green.500",
+    "base.green.700",
+    "base.green.900",
+    "base.red.50",
+    "base.red.100",
+    "base.red.300",
+    "base.red.500",
+    "base.red.700",
+    "base.red.900",
+    "base.yellow.50",
+    "base.yellow.300",
+    "base.yellow.500",
+    "base.yellow.700",
+    "base.purple.50",
+    "base.purple.300",
+    "base.purple.500",
+    "base.purple.700",
+    "base.purple.900",
+    "base.neutral.0",
+    "base.neutral.50",
+    "base.neutral.100",
+    "base.neutral.200",
+    "base.neutral.300",
+    "base.neutral.400",
+    "base.neutral.500",
+    "base.neutral.600",
+    "base.neutral.700",
+    "base.neutral.800",
+    "base.neutral.900",
+    "base.neutral.1000",
+    "spacing.0",
+    "spacing.1",
+    "spacing.2",
+    "spacing.3",
+    "spacing.4",
+    "spacing.5",
+    "spacing.6",
+    "spacing.7",
+    "spacing.8",
+    "spacing.10",
+    "spacing.12",
+    "spacing.16",
+    "spacing.20",
+    "spacing.24",
+    "spacing.32",
+    "sizing.xs",
+    "sizing.sm",
+    "sizing.md",
+    "sizing.lg",
+    "sizing.xl",
+    "sizing.2xl",
+    "sizing.3xl",
+    "sizing.4xl",
+    "sizing.full",
+    "borderRadius.none",
+    "borderRadius.xs",
+    "borderRadius.sm",
+    "borderRadius.md",
+    "borderRadius.lg",
+    "borderRadius.xl",
+    "borderRadius.2xl",
+    "borderRadius.3xl",
+    "borderRadius.full",
+    "borderWidth.0",
+    "borderWidth.1",
+    "borderWidth.2",
+    "borderWidth.4",
+    "borderWidth.8",
+    "fontFamily.sans",
+    "fontFamily.mono",
+    "fontFamily.serif",
+    "fontSize.xs",
+    "fontSize.sm",
+    "fontSize.md",
+    "fontSize.lg",
+    "fontSize.xl",
+    "fontSize.2xl",
+    "fontSize.3xl",
+    "fontSize.4xl",
+    "fontSize.5xl",
+    "fontSize.6xl",
+    "fontSize.7xl",
+    "fontWeight.thin",
+    "fontWeight.light",
+    "fontWeight.regular",
+    "fontWeight.medium",
+    "fontWeight.semibold",
+    "fontWeight.bold",
+    "fontWeight.extrabold",
+    "fontWeight.black",
+    "lineHeight.none",
+    "lineHeight.tight",
+    "lineHeight.snug",
+    "lineHeight.normal",
+    "lineHeight.relaxed",
+    "lineHeight.loose",
+    "letterSpacing.tighter",
+    "letterSpacing.tight",
+    "letterSpacing.normal",
+    "letterSpacing.wide",
+    "letterSpacing.wider",
+    "letterSpacing.widest",
+    "opacity.0",
+    "opacity.10",
+    "opacity.20",
+    "opacity.30",
+    "opacity.40",
+    "opacity.50",
+    "opacity.60",
+    "opacity.70",
+    "opacity.80",
+    "opacity.90",
+    "opacity.100",
+    "shadow.xs",
+    "shadow.sm",
+    "shadow.md",
+    "shadow.lg",
+    "shadow.xl",
+    "shadow.2xl",
+    "shadow.inner",
+    "shadow.none",
+    "zIndex.0",
+    "zIndex.10",
+    "zIndex.20",
+    "zIndex.30",
+    "zIndex.40",
+    "zIndex.50",
+    "zIndex.modal",
+    "zIndex.tooltip",
+    "zIndex.toast",
+    "duration.instant",
+    "duration.fast",
+    "duration.normal",
+    "duration.slow",
+    "duration.slower",
+    "easing.linear",
+    "easing.ease",
+    "easing.easeIn",
+    "easing.easeOut",
+    "easing.easeInOut",
+    "easing.spring",
+    "fill.primary",
+    "fill.primary-hover",
+    "fill.primary-active",
+    "fill.primary-subtle",
+    "fill.secondary",
+    "fill.secondary-hover",
+    "fill.secondary-subtle",
+    "fill.success",
+    "fill.success-subtle",
+    "fill.warning",
+    "fill.warning-subtle",
+    "fill.error",
+    "fill.error-subtle",
+    "fill.info",
+    "fill.info-subtle",
+    "surface.default",
+    "surface.raised",
+    "surface.overlay",
+    "surface.sunken",
+    "surface.inverted",
+    "border.default",
+    "border.strong",
+    "border.focus",
+    "border.error",
+    "border.success",
+    "text.primary",
+    "text.secondary",
+    "text.tertiary",
+    "text.disabled",
+    "text.inverse",
+    "text.link",
+    "text.link-hover",
+    "text.error",
+    "text.success",
+    "text.warning",
+    "icon.default",
+    "icon.muted",
+    "icon.primary",
+    "icon.inverse",
+    "icon.error",
+    "icon.success",
+    "space.component-xs",
+    "space.component-sm",
+    "space.component-md",
+    "space.component-lg",
+    "space.layout-xs",
+    "space.layout-sm",
+    "space.layout-md",
+    "space.layout-lg",
+    "radius.component",
+    "radius.card",
+    "radius.dialog",
+    "radius.pill",
+    "typography.display-xl",
+    "typography.display-lg",
+    "typography.display-md",
+    "typography.heading-xl",
+    "typography.heading-lg",
+    "typography.heading-md",
+    "typography.heading-sm",
+    "typography.heading-xs",
+    "typography.body-lg",
+    "typography.body-md",
+    "typography.body-sm",
+    "typography.label-lg",
+    "typography.label-md",
+    "typography.label-sm",
+    "typography.code",
+    "button.primary.bg",
+    "button.primary.bg-hover",
+    "button.primary.bg-active",
+    "button.primary.text",
+    "button.primary.border",
+    "button.primary.radius",
+    "button.primary.padding-x",
+    "button.primary.padding-y",
+    "button.primary.font-size",
+    "button.primary.font-weight",
+    "button.secondary.bg",
+    "button.secondary.bg-hover",
+    "button.secondary.text",
+    "button.secondary.border",
+    "button.secondary.border-width",
+    "button.ghost.bg",
+    "button.ghost.bg-hover",
+    "button.ghost.text",
+    "button.ghost.border",
+    "button.destructive.bg",
+    "button.destructive.bg-hover",
+    "button.destructive.text",
+    "input.bg",
+    "input.bg-disabled",
+    "input.border",
+    "input.border-focus",
+    "input.border-error",
+    "input.text",
+    "input.placeholder",
+    "input.label",
+    "input.radius",
+    "input.padding-x",
+    "input.padding-y",
+    "input.font-size",
+    "card.bg",
+    "card.bg-hover",
+    "card.border",
+    "card.shadow",
+    "card.shadow-hover",
+    "card.radius",
+    "card.padding",
+    "card.title-color",
+    "card.title-size",
+    "card.body-color",
+    "card.body-size",
+    "badge.default.bg",
+    "badge.default.text",
+    "badge.default.radius",
+    "badge.default.font-size",
+    "badge.success.bg",
+    "badge.success.text",
+    "badge.warning.bg",
+    "badge.warning.text",
+    "badge.error.bg",
+    "badge.error.text",
+    "badge.info.bg",
+    "badge.info.text",
+    "tooltip.bg",
+    "tooltip.text",
+    "tooltip.radius",
+    "tooltip.padding-x",
+    "tooltip.padding-y",
+    "tooltip.font-size",
+    "tooltip.shadow",
+    "avatar.xs",
+    "avatar.sm",
+    "avatar.md",
+    "avatar.lg",
+    "avatar.xl",
+    "avatar.2xl",
+    "avatar.radius",
+    "avatar.bg",
+    "avatar.text",
+    "navbar.bg",
+    "navbar.border",
+    "navbar.height",
+    "navbar.padding-x",
+    "navbar.text",
+    "navbar.text-active",
+    "navbar.shadow",
+    "modal.bg",
+    "modal.backdrop",
+    "modal.radius",
+    "modal.shadow",
+    "modal.padding",
+    "modal.max-width-sm",
+    "modal.max-width-md",
+    "modal.max-width-lg",
+    "table.header-bg",
+    "table.header-text",
+    "table.row-bg",
+    "table.row-bg-hover",
+    "table.row-border",
+    "table.cell-padding-x",
+    "table.cell-padding-y",
+    "table.font-size"
+  ],
+  "hardcodedColors": [
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 27,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 34,
+      "value": "rgba(18, 58, 112, 0.1)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 61,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 71,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 75,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 79,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 80,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 81,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 86,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 112,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 176,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 178,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 216,
+      "value": "rgba(239, 68, 68, 0.32)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 217,
+      "value": "rgba(239, 68, 68, 0.08)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 218,
+      "value": "#b91c1c"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 226,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 227,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 236,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 237,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 317,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 339,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 340,
+      "value": "rgba(15, 23, 42, 0.08)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 344,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 345,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 345,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 346,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 356,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 357,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 358,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 359,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 401,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 404,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 409,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 445,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 450,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 451,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 455,
+      "value": "#047857"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 456,
+      "value": "rgba(16, 185, 129, 0.35)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 457,
+      "value": "rgba(16, 185, 129, 0.1)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 461,
+      "value": "#a16207"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 462,
+      "value": "rgba(245, 158, 11, 0.35)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 463,
+      "value": "rgba(245, 158, 11, 0.1)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 467,
+      "value": "#b91c1c"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 468,
+      "value": "rgba(239, 68, 68, 0.35)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 469,
+      "value": "rgba(239, 68, 68, 0.1)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 481,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 482,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 571,
+      "value": "rgba(2, 6, 23, 0.45)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 585,
+      "value": "rgba(var(--ftd-primary-rgb)"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 721,
+      "value": "rgba(255, 239, 220, 0.98)"
+    }
+  ],
+  "hardcodedSpacing": [
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 4,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 12,
+      "value": "24px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 13,
+      "value": "24px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 22,
+      "value": "680px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 22,
+      "value": "80px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 23,
+      "value": "14px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 24,
+      "value": "40px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 37,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 43,
+      "value": "2px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 48,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 50,
+      "value": "2px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 56,
+      "value": "6px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 57,
+      "value": "24px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 58,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 100,
+      "value": "360px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 110,
+      "value": "420px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 110,
+      "value": "80px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 115,
+      "value": "12px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 125,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 135,
+      "value": "28px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 136,
+      "value": "28px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 147,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 154,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 155,
+      "value": "18px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 162,
+      "value": "12px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 164,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 172,
+      "value": "900px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 172,
+      "value": "80px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 173,
+      "value": "820px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 183,
+      "value": "12px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 193,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 203,
+      "value": "4px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 210,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 215,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 220,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 220,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 225,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 230,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 230,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 235,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 239,
+      "value": "9px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 239,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 250,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 252,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 257,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 261,
+      "value": "9px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 261,
+      "value": "10px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 268,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 279,
+      "value": "8px"
+    },
+    {
+      "file": "/home/flock/Nibin/npm-package/tokvista/demo/src/app/page.module.css",
+      "line": 282,
+      "value": "8px"
+    }
+  ],
+  "tokenFileIssues": [
+    {
+      "path": "avatar.xs",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "24px"
+    },
+    {
+      "path": "avatar.sm",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "32px"
+    },
+    {
+      "path": "avatar.md",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "40px"
+    },
+    {
+      "path": "avatar.lg",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "48px"
+    },
+    {
+      "path": "avatar.xl",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "64px"
+    },
+    {
+      "path": "avatar.2xl",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "96px"
+    },
+    {
+      "path": "navbar.height",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "64px"
+    },
+    {
+      "path": "modal.backdrop",
+      "issue": "Semantic token uses hardcoded color",
+      "value": "rgba(0, 0, 0, 0.5)"
+    },
+    {
+      "path": "modal.max-width-sm",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "400px"
+    },
+    {
+      "path": "modal.max-width-md",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "560px"
+    },
+    {
+      "path": "modal.max-width-lg",
+      "issue": "Semantic token uses hardcoded spacing",
+      "value": "720px"
+    }
+  ],
+  "filesScanned": 3
+}

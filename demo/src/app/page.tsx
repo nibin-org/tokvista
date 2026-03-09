@@ -358,6 +358,7 @@ function withCacheBust(url: string): string {
 
 export default function Home() {
   const [tokens, setTokens] = useState<TokensPayload>(DEFAULT_TOKENS)
+  const [usageData, setUsageData] = useState<any>(undefined)
   const [subtitle, setSubtitle] = useState(
     `Real tokens from Figma Token Studio - Version ${process.env.NEXT_PUBLIC_PACKAGE_VERSION}`
   )
@@ -385,6 +386,14 @@ export default function Home() {
     const syncedAt = new Date(sourceLastSyncedAt).toLocaleTimeString()
     return `${subtitle} · Last sync ${syncedAt}`
   }, [hasConfiguredSource, sourceLastSyncedAt, subtitle])
+
+  // Load usage data from public folder
+  useEffect(() => {
+    fetch('/usage.json')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => setUsageData(data))
+      .catch(() => setUsageData(undefined))
+  }, [])
 
   async function resolveLatestSourceForLoad(source: string): Promise<string> {
     const context = parseSourceContext(source)
@@ -653,6 +662,7 @@ export default function Home() {
         tokens={tokens}
         title="Tokvista"
         subtitle={subtitleWithSync}
+        usageData={usageData}
         theme={{
           colors: {
             primary: '#FF6B6B',

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import type { FigmaTokens } from '../types';
+import type { FigmaTokens, TokenUsageData } from '../types';
 import { createTokenMap, resolveTokenValue, extractFoundationSet, extractSemanticSet, extractComponentSet } from '../utils/core';
 
 interface AnalyticsTabProps {
     tokens: FigmaTokens;
+    usageData?: TokenUsageData;
 }
 
 interface TokenStats {
@@ -143,7 +144,7 @@ function copyReport(stats: TokenStats) {
     return lines.join('\n');
 }
 
-export function AnalyticsTab({ tokens }: AnalyticsTabProps) {
+export function AnalyticsTab({ tokens, usageData }: AnalyticsTabProps) {
     const [expandedHardcoded, setExpandedHardcoded] = useState<'semantic' | 'components' | null>(null);
     const [expandedOther, setExpandedOther] = useState(false);
 
@@ -442,6 +443,50 @@ export function AnalyticsTab({ tokens }: AnalyticsTabProps) {
                         )}
                     </div>
                 </div>
+
+                {usageData && (
+                    <div className="ftd-analytics-card ftd-analytics-usage">
+                        <div className="ftd-analytics-card-header">
+                            <h3>Token Usage</h3>
+                            <div className="ftd-analytics-usage-hint">From scan command</div>
+                        </div>
+                        <div className="ftd-analytics-usage-info">
+                            <p>To update this data, run:</p>
+                            <code>npx tokvista scan ./src --tokens tokens.json --format json &gt; usage.json</code>
+                        </div>
+                        <div className="ftd-analytics-usage-stats">
+                            <div className="ftd-analytics-usage-stat">
+                                <div className="ftd-analytics-usage-stat-value">{usageData.usedTokens.length}</div>
+                                <div className="ftd-analytics-usage-stat-label">Used</div>
+                            </div>
+                            <div className="ftd-analytics-usage-stat">
+                                <div className="ftd-analytics-usage-stat-value ftd-analytics-usage-stat-unused">{usageData.unusedTokens.length}</div>
+                                <div className="ftd-analytics-usage-stat-label">Unused</div>
+                            </div>
+                            <div className="ftd-analytics-usage-stat">
+                                <div className="ftd-analytics-usage-stat-value">{Math.round((usageData.usedTokens.length / usageData.totalTokens) * 100)}%</div>
+                                <div className="ftd-analytics-usage-stat-label">Adoption</div>
+                            </div>
+                            <div className="ftd-analytics-usage-stat">
+                                <div className="ftd-analytics-usage-stat-value">{usageData.filesScanned}</div>
+                                <div className="ftd-analytics-usage-stat-label">Files Scanned</div>
+                            </div>
+                        </div>
+                        {usageData.unusedTokens.length > 0 && (
+                            <div className="ftd-analytics-usage-unused">
+                                <div className="ftd-analytics-usage-unused-header">Unused Tokens (safe to remove)</div>
+                                <div className="ftd-analytics-usage-unused-list">
+                                    {usageData.unusedTokens.slice(0, 20).map((token) => (
+                                        <div key={token} className="ftd-analytics-usage-unused-item">{token}</div>
+                                    ))}
+                                    {usageData.unusedTokens.length > 20 && (
+                                        <div className="ftd-analytics-usage-unused-more">+{usageData.unusedTokens.length - 20} more</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
