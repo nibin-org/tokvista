@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] - 2025-01-XX
+
+### Fixed
+- **Scan command**: Fixed semantic token validation to properly detect hardcoded values in tokens under "Semantic/Value" and "Components/Mode" categories
+
+## [1.12.0] - 2025-01-XX
+
+### Added
+- **Scan command**: Analyze token usage across your codebase
+  - `tokvista scan ./src --tokens tokens.json` - Scan directory with specific tokens
+  - `tokvista scan tokens.json` - Scan current directory using tokens file
+  - Finds which tokens are actually used in your code
+  - Identifies unused tokens (safe to delete)
+  - Detects hardcoded colors (hex, rgb, rgba) that should be tokens
+  - Detects hardcoded spacing values (px, rem, em) that should be tokens
+  - Validates semantic/component tokens for hardcoded values
+  - Scans common file types: .css, .scss, .tsx, .jsx, .ts, .js, .vue, .svelte
+  - Shows file paths and line numbers for each finding
+  - Perfect for token cleanup and migration audits
+
+## [1.11.0] - 2026-03-09
+
+### Added
+- **Scan command**: Analyze token usage across your codebase
+  - `tokvista scan ./src --tokens tokens.json`
+  - Finds which tokens are actually used in your code
+  - Identifies unused tokens (safe to delete)
+  - Detects hardcoded colors (hex, rgb, rgba) that should be tokens
+  - Detects hardcoded spacing values (px, rem, em) that should be tokens
+  - Scans common file types: .css, .scss, .tsx, .jsx, .ts, .js, .vue, .svelte
+  - Shows file paths and line numbers for each finding
+  - Unique feature not available in other token tools
+  - Perfect for token cleanup and migration audits
+
 ## [1.10.0] - 2026-03-09
 
 ### Added

@@ -14,6 +14,7 @@ import { HotReloadServer } from './hotreload';
 import { validateTokens } from './validator';
 import { diffTokens } from './differ';
 import { convertTokenFormat, type ConvertFormat } from './converter';
+import { scanTokenUsage } from './scanner';
 import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
@@ -79,7 +80,13 @@ interface BuildCliOptions {
   skipValidation?: boolean;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions | BuildCliOptions;
+interface ScanCliOptions {
+  command: 'scan';
+  scanDir: string;
+  tokenFileArg?: string;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions | BuildCliOptions | ScanCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -108,6 +115,7 @@ Usage:
   tokvista diff <old.json> <new.json>
   tokvista convert <tokens.json> --to <w3c|style-dictionary|supernova> [--output <file>]
   tokvista build <tokens.json> --output-dir <dir> [--skip-validation]
+  tokvista scan <directory|tokens.json> [--tokens tokens.json]
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -122,6 +130,10 @@ Options:
   --no-watch        Disable live reload (serve only)
   --no-preview      Skip starting live preview after init
   -h, --help        Show this help message
+
+Scan command usage:
+  tokvista scan ./src --tokens tokens.json    # Scan directory with specific tokens
+  tokvista scan tokens.json                   # Scan current directory using tokens file
 `);
 }
 
@@ -270,6 +282,9 @@ function parseArgs(args: string[]): CliOptions {
   }
   if (args[0] === 'build') {
     return parseBuildArgs(args.slice(1));
+  }
+  if (args[0] === 'scan') {
+    return parseScanArgs(args.slice(1));
   }
   return parseServeArgs(args);
 }
@@ -441,6 +456,47 @@ function parseBuildArgs(args: string[]): BuildCliOptions {
   if (!outputDir) throw new Error('--output-dir is required');
 
   return { command: 'build', tokenFileArg, outputDir, skipValidation };
+}
+
+function parseScanArgs(args: string[]): ScanCliOptions {
+  let scanDir: string | undefined;
+  let tokenFileArg: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--tokens') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --tokens');
+      tokenFileArg = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--tokens=')) {
+      tokenFileArg = arg.slice('--tokens='.length);
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (scanDir) {
+      throw new Error(`Only one directory or token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    scanDir = arg;
+  }
+
+  if (!scanDir) throw new Error('Directory to scan or token file is required');
+
+  return { command: 'scan', scanDir, tokenFileArg };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1454,6 +1510,152 @@ async function runBuildCommand(cwd: string, options: BuildCliOptions): Promise<v
   console.log(`\n✅ Build complete: ${outputDir}\n`);
 }
 
+async function runScanCommand(cwd: string, options: ScanCliOptions): Promise<void> {
+  const resolvedScanPath = path.resolve(cwd, options.scanDir);
+  
+  // Check if the provided path is a file (token file) instead of directory
+  if (existsSync(resolvedScanPath)) {
+    const fs = await import('node:fs');
+    if (!fs.statSync(resolvedScanPath).isDirectory()) {
+      // If it's a file, treat it as token file and scan current directory
+      const tokenPath = resolvedScanPath;
+      const scanDir = cwd;
+      
+      const tokens = await readTokens(tokenPath);
+      
+      console.log(`\nScanning ${scanDir} for token usage...\n`);
+      
+      const result = await scanTokenUsage(tokenPath, scanDir, tokens);
+      
+      const usagePercent = ((result.usedTokens.length / result.totalTokens) * 100).toFixed(1);
+      
+      console.log(`📊 Token Usage Report\n`);
+      console.log(`Files scanned: ${result.filesScanned}`);
+      console.log(`Total tokens: ${result.totalTokens}`);
+      console.log(`Used tokens: ${result.usedTokens.length} (${usagePercent}%)`);
+      console.log(`Unused tokens: ${result.unusedTokens.length}\n`);
+      
+      if (result.unusedTokens.length > 0) {
+        console.log(`⚠️  Unused Tokens (safe to remove):`);
+        result.unusedTokens.slice(0, 20).forEach(token => {
+          console.log(`  - ${token}`);
+        });
+        if (result.unusedTokens.length > 20) {
+          console.log(`  ... and ${result.unusedTokens.length - 20} more`);
+        }
+        console.log('');
+      }
+      
+      if (result.tokenFileIssues.length > 0) {
+        console.log(`🚨 Token File Issues:`);
+        result.tokenFileIssues.forEach(({ path, issue, value }) => {
+          console.log(`  ${path}: ${issue} (${value})`);
+        });
+        console.log('');
+      }
+      
+      if (result.hardcodedColors.length > 0) {
+        console.log(`🎨 Hardcoded Colors (should use tokens):`);
+        result.hardcodedColors.slice(0, 10).forEach(({ file, line, value }) => {
+          const relPath = path.relative(cwd, file);
+          console.log(`  ${relPath}:${line} - ${value}`);
+        });
+        if (result.hardcodedColors.length > 10) {
+          console.log(`  ... and ${result.hardcodedColors.length - 10} more`);
+        }
+        console.log('');
+      }
+      
+      if (result.hardcodedSpacing.length > 0) {
+        console.log(`📏 Hardcoded Spacing (should use tokens):`);
+        result.hardcodedSpacing.slice(0, 10).forEach(({ file, line, value }) => {
+          const relPath = path.relative(cwd, file);
+          console.log(`  ${relPath}:${line} - ${value}`);
+        });
+        if (result.hardcodedSpacing.length > 10) {
+          console.log(`  ... and ${result.hardcodedSpacing.length - 10} more`);
+        }
+        console.log('');
+      }
+      
+      console.log(`✅ Scan complete\n`);
+      return;
+    }
+  }
+  
+  // Original directory scanning logic
+  const scanDir = resolvedScanPath;
+  const tokenPath = options.tokenFileArg 
+    ? path.resolve(cwd, options.tokenFileArg)
+    : path.resolve(cwd, 'tokens.json');
+  
+  if (!existsSync(scanDir)) {
+    throw new Error(`Directory not found: ${scanDir}`);
+  }
+  if (!existsSync(tokenPath)) {
+    throw new Error(`Token file not found: ${tokenPath}`);
+  }
+
+  const tokens = await readTokens(tokenPath);
+  
+  console.log(`\nScanning ${scanDir} for token usage...\n`);
+  
+  const result = await scanTokenUsage(tokenPath, scanDir, tokens);
+  
+  const usagePercent = ((result.usedTokens.length / result.totalTokens) * 100).toFixed(1);
+  
+  console.log(`📊 Token Usage Report\n`);
+  console.log(`Files scanned: ${result.filesScanned}`);
+  console.log(`Total tokens: ${result.totalTokens}`);
+  console.log(`Used tokens: ${result.usedTokens.length} (${usagePercent}%)`);
+  console.log(`Unused tokens: ${result.unusedTokens.length}\n`);
+  
+  if (result.unusedTokens.length > 0) {
+    console.log(`⚠️  Unused Tokens (safe to remove):`);
+    result.unusedTokens.slice(0, 20).forEach(token => {
+      console.log(`  - ${token}`);
+    });
+    if (result.unusedTokens.length > 20) {
+      console.log(`  ... and ${result.unusedTokens.length - 20} more`);
+    }
+    console.log('');
+  }
+  
+  if (result.tokenFileIssues.length > 0) {
+    console.log(`🚨 Token File Issues:`);
+    result.tokenFileIssues.forEach(({ path, issue, value }) => {
+      console.log(`  ${path}: ${issue} (${value})`);
+    });
+    console.log('');
+  }
+  
+  if (result.hardcodedColors.length > 0) {
+    console.log(`🎨 Hardcoded Colors (should use tokens):`);
+    result.hardcodedColors.slice(0, 10).forEach(({ file, line, value }) => {
+      const relPath = path.relative(cwd, file);
+      console.log(`  ${relPath}:${line} - ${value}`);
+    });
+    if (result.hardcodedColors.length > 10) {
+      console.log(`  ... and ${result.hardcodedColors.length - 10} more`);
+    }
+    console.log('');
+  }
+  
+  if (result.hardcodedSpacing.length > 0) {
+    console.log(`📏 Hardcoded Spacing (should use tokens):`);
+    result.hardcodedSpacing.slice(0, 10).forEach(({ file, line, value }) => {
+      const relPath = path.relative(cwd, file);
+      console.log(`  ${relPath}:${line} - ${value}`);
+    });
+    if (result.hardcodedSpacing.length > 10) {
+      console.log(`  ... and ${result.hardcodedSpacing.length - 10} more`);
+    }
+    console.log('');
+  }
+  
+  console.log(`✅ Scan complete\n`);
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -1489,6 +1691,11 @@ async function main() {
 
     if (options.command === 'build') {
       await runBuildCommand(cwd, options);
+      return;
+    }
+
+    if (options.command === 'scan') {
+      await runScanCommand(cwd, options);
       return;
     }
 
