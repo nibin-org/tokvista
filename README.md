@@ -22,6 +22,7 @@ Zero configuration. Multiple formats. One command.
 - 🔄 **Multi-format support** - Token Studio, W3C, Style Dictionary, Supernova, Figma API
 - 📋 **Smart copy** - CSS Variables, SCSS, or Tailwind with one click
 - 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token
+- 🔗 **Deep linking** - Share direct URLs to specific tokens
 - 🔬 **Token scanner** - Find unused tokens and hardcoded values
 - ✅ **Validation** - Check token structure and catch errors
 - 🔄 **Format conversion** - Convert between token formats
@@ -350,6 +351,13 @@ See [GUIDE.md](./GUIDE.md) for complete setup instructions.
 - Fuzzy matching
 - Keyboard navigation
 - Click result to copy
+
+### 🔗 Deep Linking
+
+- Share direct links to tokens
+- URL updates when clicking tokens
+- Auto-scroll and highlight on page load
+- Example: `https://yoursite.com/tokens#color-primary-500`
 
 ### 📤 Code Export
 

@@ -1225,6 +1225,7 @@ function GenericTokenDisplay({ tokens, tokenType, onCopy, copyFormat }: { tokens
                             <div
                                 key={path}
                                 className="ftd-dur-row"
+                                data-token-name={path}
                                 onClick={() => void handleCopy(varValue, cssVar, path)}
                                 title={`Click to copy: ${formattedVar}`}
                             >
@@ -1295,6 +1296,7 @@ function GenericTokenDisplay({ tokens, tokenType, onCopy, copyFormat }: { tokens
                             <div
                                 key={path}
                                 className="ftd-ease-card"
+                                data-token-name={path}
                                 onClick={() => void handleCopy(varValue, cssVar, path)}
                                 title={`Click to copy: ${formattedVar}`}
                             >
@@ -1395,6 +1397,22 @@ function ColorFamiliesDisplay({
     const activeIndex = activeFamily ? familyNames.indexOf(activeFamily) : -1;
     const hasPrev = activeIndex > 0;
     const hasNext = activeIndex < familyNames.length - 1;
+
+    // Auto-open panel if URL hash matches a color shade
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const hash = window.location.hash.slice(1);
+        if (!hash) return;
+        
+        const tokenName = decodeURIComponent(hash).trim();
+        const parts = tokenName.split('.');
+        if (parts.length === 2) {
+            const [family, shade] = parts;
+            if (colorFamilies[family] && colorFamilies[family][shade]) {
+                setActiveFamily(family);
+            }
+        }
+    }, [colorFamilies]);
 
     const goTo = (name: string) => {
         setCopiedShade(null);
@@ -1571,6 +1589,7 @@ function ColorFamiliesDisplay({
                                                 <div
                                                     key={shadeName}
                                                     className={`ftd-color-panel-shade-row${isCopied ? ' is-copied' : ''}`}
+                                                    data-token-name={tokenPath}
                                                     onClick={() => void handleCopyShade(bgColor, cssVar, tokenPath, tokenPath)}
                                                     title={`Copy ${bgColor}`}
                                                 >

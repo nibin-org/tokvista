@@ -499,6 +499,26 @@ export function TokenDocumentation({
         }
     }, []);
 
+    // Deep linking: Handle URL hash on mount
+    useEffect(() => {
+        if (!isMounted || typeof window === 'undefined') return;
+        const hash = window.location.hash.slice(1);
+        if (!hash) return;
+        
+        const tokenName = decodeURIComponent(hash).trim();
+        
+        setTimeout(() => {
+            handleScrollToToken(tokenName, activeTab);
+        }, 300);
+    }, [isMounted, activeTab]);
+
+    // Deep linking: Update URL hash when tokens are clicked
+    const updateUrlHash = (tokenName: string) => {
+        if (typeof window === 'undefined') return;
+        const hash = `#${encodeURIComponent(tokenName)}`;
+        window.history.replaceState(null, '', hash);
+    };
+
     // Load default fonts only when requested
     useEffect(() => {
         if (typeof document === 'undefined' || typeof window === 'undefined') return;
@@ -695,18 +715,8 @@ export function TokenDocumentation({
         const targetCssVar = normalizeCssVar(cssVariable);
 
         const tryFindAndHighlight = (attempt: number) => {
-            // Try to find the token element by data attribute or text content
-            const possibleSelectors = [
-                `[data-token-name="${tokenName}"]`,
-                `[data-token="${tokenName}"]`,
-            ];
-
-            let tokenElement: HTMLElement | null = null;
-
-            for (const selector of possibleSelectors) {
-                tokenElement = document.querySelector(selector);
-                if (tokenElement) break;
-            }
+            // Try to find the token element by data attribute
+            let tokenElement: HTMLElement | null = document.querySelector(`[data-token-name="${tokenName}"]`);
 
             if (!tokenElement && targetCssVar) {
                 tokenElement = document.querySelector(`[data-token-css-var="${targetCssVar}"]`) as HTMLElement | null;
@@ -719,23 +729,12 @@ export function TokenDocumentation({
                     if (!text) continue;
                     if (text === targetCssVar) {
                         const candidate = (node as HTMLElement).closest(
-                            '.ftd-color-shade, .ftd-token-card, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-dimension-item, .ftd-display-card'
+                            '.ftd-color-shade, .ftd-token-card, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-dimension-item, .ftd-display-card, .ftd-dur-row, .ftd-zi-card, .ftd-spacing-scale-row, .ftd-radius-card, .ftd-tshirt-item, .ftd-bw-card, .ftd-ff-card, .ftd-fsize-card, .ftd-fw-card, .ftd-lh-card, .ftd-ls-card, .ftd-op-card, .ftd-bs-card, .ftd-ease-card'
                         ) as HTMLElement | null;
                         if (candidate) {
                             tokenElement = candidate;
                             break;
                         }
-                    }
-                }
-            }
-
-            // If not found by data attribute, try finding by text content
-            if (!tokenElement) {
-                const allElements = document.querySelectorAll('.ftd-color-shade, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-token-card, .ftd-search-result-item');
-                for (const el of Array.from(allElements)) {
-                    if (el.textContent?.includes(tokenName)) {
-                        tokenElement = el as HTMLElement;
-                        break;
                     }
                 }
             }
@@ -1207,6 +1206,7 @@ export function TokenDocumentation({
 
     const handleCopy = async (value: string, label: string, tokenPath?: string) => {
         try {
+            updateUrlHash(tokenPath || label);
             const formattedValue = formatTokenForCopy(value, tokenPath || label, copyFormat);
             const success = await copyToClipboard(formattedValue);
             if (!success) return;
@@ -1654,7 +1654,6 @@ export function TokenDocumentation({
                     tokens={normalizedTokenSets as FigmaTokens}
                     onTokenClick={onTokenClick}
                     onNavigateToTab={(tab) => setActiveTab(tab)}
-                    onScrollToToken={handleScrollToToken}
                 />
             )}
 

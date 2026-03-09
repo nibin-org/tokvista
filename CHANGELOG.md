@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2025-01-30
+
+### Added
+- **Deep linking**: Share direct links to specific tokens
+  - URL automatically updates when clicking tokens (e.g., `#color-primary-500`)
+  - Opening a link with hash scrolls to and highlights that token
+  - Perfect for sharing tokens in Slack, documentation, or design specs
+  - Works across all tabs (Foundation, Semantic, Components)
+
 ## [1.12.1] - 2025-01-XX
 
 ### Fixed

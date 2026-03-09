@@ -9,10 +9,9 @@ interface SearchModalProps {
     tokens: FigmaTokens;
     onTokenClick?: (token: any) => void;
     onNavigateToTab?: (tab: 'foundation' | 'semantic' | 'components') => void;
-    onScrollToToken?: (tokenName: string, category: string, cssVariable?: string) => void;
 }
 
-export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateToTab, onScrollToToken }: SearchModalProps) {
+export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateToTab }: SearchModalProps) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -103,12 +102,8 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
             onNavigateToTab(targetTab as 'foundation' | 'semantic' | 'components');
         }
 
-        // Scroll to and highlight the token
-        if (onScrollToToken) {
-            // Use setTimeout to ensure tab switch completes before scrolling
-            setTimeout(() => {
-                onScrollToToken(token.name, token.category, token.cssVariable);
-            }, 100);
+        if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', `#${encodeURIComponent(token.name)}`);
         }
 
         onTokenClick?.({ value: token.value, cssVariable: token.cssVariable });
