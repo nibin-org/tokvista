@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-03-09
+
+### Added
+- **Build command**: Complete CI/CD pipeline in one command
+  - `tokvista build tokens.json --output-dir ./dist`
+  - Validates tokens first (use `--skip-validation` to skip)
+  - Exports all formats: CSS, SCSS, JavaScript, Tailwind
+  - Creates output directory automatically
+  - Perfect for automated build pipelines
+  - Replaces 4 separate export commands
+
 ## [1.9.0] - 2026-03-09
 
 ### Added

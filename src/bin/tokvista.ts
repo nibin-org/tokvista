@@ -72,7 +72,14 @@ interface ConvertCliOptions {
   output?: string;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions;
+interface BuildCliOptions {
+  command: 'build';
+  tokenFileArg: string;
+  outputDir: string;
+  skipValidation?: boolean;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions | BuildCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -100,6 +107,7 @@ Usage:
   tokvista validate <tokens.json>
   tokvista diff <old.json> <new.json>
   tokvista convert <tokens.json> --to <w3c|style-dictionary|supernova> [--output <file>]
+  tokvista build <tokens.json> --output-dir <dir> [--skip-validation]
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -260,6 +268,9 @@ function parseArgs(args: string[]): CliOptions {
   if (args[0] === 'convert') {
     return parseConvertArgs(args.slice(1));
   }
+  if (args[0] === 'build') {
+    return parseBuildArgs(args.slice(1));
+  }
   return parseServeArgs(args);
 }
 
@@ -382,6 +393,54 @@ function parseConvertArgs(args: string[]): ConvertCliOptions {
   if (!to) throw new Error('--to is required (w3c, style-dictionary, supernova, or token-studio)');
 
   return { command: 'convert', tokenFileArg, to, output };
+}
+
+function parseBuildArgs(args: string[]): BuildCliOptions {
+  let tokenFileArg: string | undefined;
+  let outputDir: string | undefined;
+  let skipValidation = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--output-dir' || arg === '-o') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --output-dir');
+      outputDir = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--output-dir=')) {
+      outputDir = arg.slice('--output-dir='.length);
+      continue;
+    }
+
+    if (arg === '--skip-validation') {
+      skipValidation = true;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (tokenFileArg) {
+      throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    tokenFileArg = arg;
+  }
+
+  if (!tokenFileArg) throw new Error('Token file is required for build');
+  if (!outputDir) throw new Error('--output-dir is required');
+
+  return { command: 'build', tokenFileArg, outputDir, skipValidation };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1341,6 +1400,60 @@ async function runConvertCommand(cwd: string, options: ConvertCliOptions): Promi
   }
 }
 
+async function runBuildCommand(cwd: string, options: BuildCliOptions): Promise<void> {
+  const resolvedTokenPath = path.resolve(cwd, options.tokenFileArg);
+  const outputDir = path.resolve(cwd, options.outputDir);
+  
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  // Create output directory if it doesn't exist
+  if (!existsSync(outputDir)) {
+    await import('node:fs/promises').then(fs => fs.mkdir(outputDir, { recursive: true }));
+  }
+
+  const tokens = await readTokens(resolvedTokenPath) as FigmaTokens;
+
+  // Validate first unless skipped
+  if (!options.skipValidation) {
+    console.log('\nValidating tokens...');
+    const result = validateTokens(tokens);
+    
+    if (!result.valid) {
+      console.log(`❌ Found ${result.errors.length} errors`);
+      result.errors.slice(0, 5).forEach(err => {
+        console.log(`  ${err.path}: ${err.message}`);
+      });
+      if (result.errors.length > 5) {
+        console.log(`  ... and ${result.errors.length - 5} more errors`);
+      }
+      throw new Error('Validation failed. Fix errors or use --skip-validation');
+    }
+    console.log('✅ Validation passed\n');
+  }
+
+  // Export all formats
+  console.log('Building tokens...');
+  
+  const formats = [
+    { name: 'CSS', ext: 'css', generator: generateCSS },
+    { name: 'SCSS', ext: 'scss', generator: generateSCSS },
+    { name: 'JavaScript', ext: 'js', generator: generateJS },
+    { name: 'Tailwind', ext: 'tailwind.config.js', generator: generateTailwind },
+  ];
+
+  for (const format of formats) {
+    const content = format.generator(tokens);
+    const filename = format.ext.includes('.') ? format.ext : `tokens.${format.ext}`;
+    const outputPath = path.join(outputDir, filename);
+    await writeFile(outputPath, content, 'utf8');
+    console.log(`  ✓ ${format.name} → ${filename}`);
+  }
+
+  console.log(`\n✅ Build complete: ${outputDir}\n`);
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -1371,6 +1484,11 @@ async function main() {
 
     if (options.command === 'convert') {
       await runConvertCommand(cwd, options);
+      return;
+    }
+
+    if (options.command === 'build') {
+      await runBuildCommand(cwd, options);
       return;
     }
 

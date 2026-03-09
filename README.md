@@ -147,6 +147,22 @@ npx tokvista convert tokens.json --to supernova --output tokens-sn.json
 npx tokvista convert tokens.json --to w3c
 ```
 
+### Build All Formats
+
+```bash
+# Build everything in one command
+npx tokvista build tokens.json --output-dir ./dist
+
+# Creates:
+# - tokens.css
+# - tokens.scss
+# - tokens.js
+# - tailwind.config.js
+
+# Skip validation for faster builds
+npx tokvista build tokens.json --output-dir ./dist --skip-validation
+```
+
 ### Interactive Setup
 
 ```bash
@@ -179,6 +195,7 @@ Then run `npx tokvista` to use your config.
 | `tokvista validate <file>` | Validate token structure and values |
 | `tokvista diff <old> <new>` | Compare two token files |
 | `tokvista convert <file> --to <format>` | Convert between token formats |
+| `tokvista build <file> --output-dir <dir>` | Build all formats (validate + export) |
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
 | `--format` | Export format (export only) |
