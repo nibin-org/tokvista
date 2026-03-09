@@ -5,10 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.1] - 2026-03-09
 
 ### Added
 - **Live watch & hot reload**: CLI automatically reloads browser when token files change (enabled by default, use `--no-watch` to disable)
+- WebSocket-based hot reload with minimal overhead
+- File watcher with 100ms debounce for stable reloads
+- Console feedback showing "Tokens reloaded" on each change
+
+### Changed
+- CLI now watches token file by default for instant feedback during development
+- Updated README with live reload feature in features list
+- Added `--no-watch` flag to CLI options documentation
+
+## [Unreleased]
+
+### Added
 - **Multi-format token support**: Automatic detection and normalization for 5 token formats
   - Token Studio (native format)
   - W3C DTCG format (`$type`, `$value`)
