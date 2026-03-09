@@ -8,9 +8,12 @@ import { createInterface, type Interface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { FigmaTokens, TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
 import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../utils/exportUtils';
+import { detectTokenFormat } from '../utils/formatDetector';
+import { normalizeTokenFormat } from '../utils/formatNormalizers';
 import { HotReloadServer } from './hotreload';
 import { validateTokens } from './validator';
 import { diffTokens } from './differ';
+import { convertTokenFormat, type ConvertFormat } from './converter';
 import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
@@ -62,7 +65,14 @@ interface DiffCliOptions {
   newFileArg: string;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions;
+interface ConvertCliOptions {
+  command: 'convert';
+  tokenFileArg: string;
+  to: ConvertFormat;
+  output?: string;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -89,6 +99,7 @@ Usage:
   tokvista export <tokens.json> --format <css|scss|json|tailwind> [--output <file>]
   tokvista validate <tokens.json>
   tokvista diff <old.json> <new.json>
+  tokvista convert <tokens.json> --to <w3c|style-dictionary|supernova> [--output <file>]
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -246,6 +257,9 @@ function parseArgs(args: string[]): CliOptions {
   if (args[0] === 'diff') {
     return parseDiffArgs(args.slice(1));
   }
+  if (args[0] === 'convert') {
+    return parseConvertArgs(args.slice(1));
+  }
   return parseServeArgs(args);
 }
 
@@ -305,6 +319,69 @@ function parseDiffArgs(args: string[]): DiffCliOptions {
   if (!newFileArg) throw new Error('New token file is required');
 
   return { command: 'diff', oldFileArg, newFileArg };
+}
+
+function parseConvertArgs(args: string[]): ConvertCliOptions {
+  let tokenFileArg: string | undefined;
+  let to: ConvertFormat | undefined;
+  let output: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--to') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --to');
+      if (!['w3c', 'style-dictionary', 'supernova', 'token-studio'].includes(next)) {
+        throw new Error('Format must be: w3c, style-dictionary, supernova, or token-studio');
+      }
+      to = next as ConvertFormat;
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--output' || arg === '-o') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --output');
+      output = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--to=')) {
+      const val = arg.slice('--to='.length);
+      if (!['w3c', 'style-dictionary', 'supernova', 'token-studio'].includes(val)) {
+        throw new Error('Format must be: w3c, style-dictionary, supernova, or token-studio');
+      }
+      to = val as ConvertFormat;
+      continue;
+    }
+
+    if (arg.startsWith('--output=')) {
+      output = arg.slice('--output='.length);
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (tokenFileArg) {
+      throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    tokenFileArg = arg;
+  }
+
+  if (!tokenFileArg) throw new Error('Token file is required for convert');
+  if (!to) throw new Error('--to is required (w3c, style-dictionary, supernova, or token-studio)');
+
+  return { command: 'convert', tokenFileArg, to, output };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1235,6 +1312,35 @@ async function runDiffCommand(cwd: string, options: DiffCliOptions): Promise<voi
   console.log(`Total changes: ${diff.added.length + diff.removed.length + diff.modified.length}\n`);
 }
 
+async function runConvertCommand(cwd: string, options: ConvertCliOptions): Promise<void> {
+  const resolvedTokenPath = path.resolve(cwd, options.tokenFileArg);
+  
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  const tokens = await readTokens(resolvedTokenPath);
+  const detection = detectTokenFormat(tokens);
+  
+  // Normalize to Token Studio first if needed
+  let normalizedTokens = tokens;
+  if (detection.format !== 'token-studio' && detection.format !== 'unknown') {
+    normalizedTokens = normalizeTokenFormat(tokens, detection.format);
+  }
+
+  const converted = convertTokenFormat(normalizedTokens, options.to);
+  const output = JSON.stringify(converted, null, 2);
+
+  if (options.output) {
+    const outputPath = path.resolve(cwd, options.output);
+    await writeFile(outputPath, output, 'utf8');
+    console.log(`Converted ${detection.format} → ${options.to}`);
+    console.log(`Output: ${outputPath}`);
+  } else {
+    console.log(output);
+  }
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -1260,6 +1366,11 @@ async function main() {
 
     if (options.command === 'diff') {
       await runDiffCommand(cwd, options);
+      return;
+    }
+
+    if (options.command === 'convert') {
+      await runConvertCommand(cwd, options);
       return;
     }
 

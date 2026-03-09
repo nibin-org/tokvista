@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-03-09
+
+### Added
+- **Convert command**: Transform tokens between formats
+  - `tokvista convert tokens.json --to w3c --output converted.json`
+  - Convert from any format to: W3C DTCG, Style Dictionary, Supernova, or Token Studio
+  - Auto-detects source format and normalizes before conversion
+  - Perfect for migrating between design tools (Figma → Style Dictionary, etc.)
+  - Supports all 5 token formats with automatic detection
+
 ## [1.8.0] - 2026-03-09
 
 ### Added

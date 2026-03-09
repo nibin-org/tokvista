@@ -131,6 +131,22 @@ npx tokvista diff tokens-v1.json tokens-v2.json
 # - Migration tracking
 ```
 
+### Convert Formats
+
+```bash
+# Convert to W3C DTCG format
+npx tokvista convert tokens.json --to w3c --output tokens-w3c.json
+
+# Convert to Style Dictionary
+npx tokvista convert tokens.json --to style-dictionary --output tokens-sd.json
+
+# Convert to Supernova array format
+npx tokvista convert tokens.json --to supernova --output tokens-sn.json
+
+# Print to stdout
+npx tokvista convert tokens.json --to w3c
+```
+
 ### Interactive Setup
 
 ```bash
@@ -162,6 +178,7 @@ Then run `npx tokvista` to use your config.
 | `tokvista export <file> --format <type>` | Export tokens (css, scss, json, tailwind) |
 | `tokvista validate <file>` | Validate token structure and values |
 | `tokvista diff <old> <new>` | Compare two token files |
+| `tokvista convert <file> --to <format>` | Convert between token formats |
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
 | `--format` | Export format (export only) |
